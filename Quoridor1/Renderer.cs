@@ -1,0 +1,102 @@
+﻿using System.Drawing;
+using System.Numerics;
+using System.Windows.Forms;
+
+namespace Quoridor1
+{
+    /// <summary>
+    /// ゲームの描画を担当するクラス。
+    /// グリッド線、壁、プレイヤーをPictureBox上に描画。
+    /// </summary>
+    public class Renderer
+    {
+        private PictureBox pictureBox; // 描画先となるPictureBox
+        private Board board;           // ゲームの盤面データを保持するBoard
+        private int cellSize;          // 1マスのピクセルサイズ
+
+        /// <summary>
+        /// Rendererのコンストラクタ。
+        /// Boardの参照を受け取り、描画対象のPictureBoxやセルサイズを設定。
+        /// </summary>
+        public Renderer(Board board)
+        {
+            this.pictureBox = board.pictureBox; // Boardが持つPictureBoxを取得
+            this.board = board;                 // Boardインスタンスを保持
+            this.cellSize = board.cellSize;     // セルサイズを取得
+        }
+
+        /// <summary>
+        /// 盤面全体を描画する。
+        /// グリッド、壁、プレイヤーを順に描画してPictureBoxに表示。
+        /// </summary>
+        public void DrawBoard()
+        {
+            // PictureBoxサイズに基づいて新しいBitmapを作成
+            Bitmap bmp = new Bitmap(pictureBox.Width, pictureBox.Width);
+
+            // Graphicsオブジェクトを取得し、ペンやブラシを用意
+            using (Graphics g = Graphics.FromImage(bmp))
+            using (Pen gridPen = new Pen(Color.DarkGray, 2))      // グリッド用の灰色の細線
+            using (Pen wallPen = new Pen(Color.Blue, Board.lineWidth)) // 壁用の青い太線
+            {
+                // グリッド線の描画（縦横のラインを描く）
+                for (int i = 0; i <= Board.N; i++)
+                {
+                    g.DrawLine(gridPen, 0, i * cellSize, pictureBox.Width, i * cellSize);   // 横線
+                    g.DrawLine(gridPen, i * cellSize, 0, i * cellSize, pictureBox.Width);   // 縦線
+                }
+
+                // 壁の描画
+                for (int xi = 0; xi < Board.N; xi++)
+                {
+                    for (int yi = 0; yi < Board.N; yi++)
+                    {
+                        // 横壁がある場合は青線を描く
+                        if (board.horizontalWalls[xi, yi] > 0)
+                            g.DrawLine(wallPen,
+                                xi * cellSize, (yi + 1) * cellSize,
+                                (xi + 1) * cellSize, (yi + 1) * cellSize);
+
+                        // 縦壁がある場合は青線を描く
+                        if (board.verticalWalls[xi, yi] > 0)
+                            g.DrawLine(wallPen,
+                                (xi + 1) * cellSize, yi * cellSize,
+                                (xi + 1) * cellSize, (yi + 1) * cellSize);
+                    }
+                }
+
+                // プレイヤーを描画（黒：player0, 白：player1）
+                DrawPlayer(g, Brushes.White, board.player1);
+                DrawPlayer(g, Brushes.Black, board.player0);
+            }
+
+            // 既存の画像を破棄し、新しい描画結果をPictureBoxに設定
+            if (pictureBox.Image != null) pictureBox.Image.Dispose();
+            pictureBox.Image = bmp;
+        }
+
+        /// <summary>
+        /// プレイヤーの位置に丸を描画する。
+        /// </summary>
+        /// <param name="g">Graphicsオブジェクト</param>
+        /// <param name="brush">プレイヤーの色を指定するブラシ</param>
+        /// <param name="p">描画対象のプレイヤー</param>
+        private void DrawPlayer(Graphics g, Brush brush, Player p)
+        {
+            // プレイヤーの座標をセル単位からピクセル座標に変換
+            int x = p.x * cellSize + 2; // 左上のx座標（2px余白）
+            int y = p.y * cellSize + 2; // 左上のy座標（2px余白）
+
+            // プレイヤーを楕円（実質的には円）として塗りつぶし描画
+            g.FillEllipse(brush, x, y, cellSize - 4, cellSize - 4);
+
+            if (p.nextMove == null) return; // nextMoveが未設定なら終了
+            foreach ((int,int) move in p.nextMove)
+            {
+                int x2 = move.Item1 * cellSize + cellSize * 3/8;
+                int y2 = move.Item2 * cellSize + cellSize * 3/8;
+                g.FillEllipse(brush, x2, y2, cellSize/4, cellSize/4);
+            }
+        }
+    }
+}
