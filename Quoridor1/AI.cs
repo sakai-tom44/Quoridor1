@@ -21,13 +21,20 @@ namespace Quoridor1
         /// </summary>
         public bool MakeMove(int playerNumber)
         {
+            if (board.gameOver) return false; // ゲーム終了後は動かない
+
             if (board.player[board.currentPlayer].playerType == PlayerType.Random)
                 return RandomMove(playerNumber);
+            if (board.player[board.currentPlayer].playerType == PlayerType.AI)
+                return MinimaxMove(playerNumber, 2); // 深さ2でミニマックス法を使用
 
 
             return false; // 該当する操作方法がない場合
         }
 
+        /// <summary>
+        /// ランダムに移動または壁の設置を行う。
+        /// </summary>
         private bool RandomMove(int playerNumber)
         {
             // 現在のプレイヤーと相手プレイヤーを取得
@@ -53,8 +60,6 @@ namespace Quoridor1
                                 if (r == 0)
                                 {
                                     board.wallManager.PlaceWall(x, y, WallOrientation.Vertical);
-                                    // 手番を交代
-                                    board.NextPlayer();
                                     return true; // 壁の設置が成功したことを示す
                                 }
                                 r--;
@@ -74,8 +79,6 @@ namespace Quoridor1
                                 if (r == 0)
                                 {
                                     board.wallManager.PlaceWall(x, y, WallOrientation.Horizontal);
-                                    // 手番を交代
-                                    board.NextPlayer();
                                     return true; // 壁の設置が成功したことを示す
                                 }
                                 r--;
@@ -90,12 +93,97 @@ namespace Quoridor1
                 var move = possibleMoves[rand.Next(possibleMoves.Count)];
                 currentPlayer.x = move.Item1;
                 currentPlayer.y = move.Item2;
-                // 手番を交代
-                board.NextPlayer();
                 return true; // 移動が成功したことを示す
             }
 
             return false; // 移動できるマスがない場合
+        }
+
+        /// <summary>
+        /// ミニマックス法を使用して最良の移動を決定し、実行。
+        /// </summary>
+        /// <param name="playerNumber">AIのプレイヤー番号 (0または1)</param>
+        /// <param name="depth">探索の深さ</param>
+        private bool MinimaxMove(int playerNumber, int depth)
+        {
+            // 現在のプレイヤーと相手プレイヤーを取得
+            (int,int) currentPlayer = board.player[board.currentPlayer].pos; // 自分
+            (int,int) opponentPlayer = board.player[1 - board.currentPlayer].pos; // 相手
+            var moveGraph = board.moveGraph; // 移動可能グラフ
+            int bestScore = int.MinValue; // 最良のスコアを初期化
+            (int, int)? bestMove = null; // 最良の移動を初期化
+            foreach (var move in board.player[board.currentPlayer].possibleMoves) // 各移動候補に対して
+            {
+                // 評価関数を使用して盤面を評価
+                int score = EvaluateBoardState(move, opponentPlayer, moveGraph, playerNumber);
+                // 最良のスコアと移動を更新
+                if (score > bestScore)
+                {
+                    bestScore = score;
+                    bestMove = move;
+                }
+            }
+            if (bestMove.HasValue)
+            {
+                // 最良の移動を実行
+                board.player[board.currentPlayer].x = bestMove.Value.Item1;
+                board.player[board.currentPlayer].y = bestMove.Value.Item2;
+                return true; // 移動が成功したことを示す
+            }
+            return false; // 移動できるマスがない場合
+        }
+
+        /// <summary>
+        /// 盤面の評価関数。
+        /// </summary>
+        /// AIの戦略に応じて調整可能。
+        private int EvaluateBoardState((int,int) current, (int, int) opponent, int[,] moveGraph, int playerNumber)
+        {
+            Console.WriteLine("EvaluateBoardState: current=({0},{1}), opponent=({2},{3})", current.Item1, current.Item2, opponent.Item1, opponent.Item2);
+            // 盤面の評価関数を実装
+            // 例えば、各プレイヤーのゴールまでの最短距離を計算し、その差を評価値とする
+            int score = 0;
+            int currentDistance = ShortestPathToGoal(current, moveGraph, (playerNumber) * (Board.N - 1));// 自分のゴールまでの距離を計算
+            int opponentDistance = ShortestPathToGoal(opponent, moveGraph, (1 - playerNumber) * (Board.N - 1));// 相手のゴールまでの距離を計算
+            // 評価値を計算（距離が短いほど高評価）
+            score += (opponentDistance - currentDistance) * 10; // 自分が有利なら正のスコア
+            // 壁の数も考慮（壁が多いほど有利）
+            score += (board.player[playerNumber].placeWallCount - board.player[1 - playerNumber].placeWallCount) * 5;
+            Console.WriteLine("Score: {0}", score);
+            return score;
+        }
+
+        /// <summary>
+        /// 指定された座標からのゴールまでの最短距離を計算。
+        /// </summary>
+        /// <param name="xy"></param>
+        /// <param name="moveGraph"></param>
+        /// <param name="goalY"></param>
+        /// <returns>最短距離(マス)</returns>
+        private int ShortestPathToGoal((int,int) xy, int[,] moveGraph, int goalY)
+        {
+            // 幅優先探索（BFS）を使用して最短経路 (暫定案)
+            Queue<(int, int, int)> queue = new Queue<(int, int, int)>();
+            int[,] visited = new int[Board.N, Board.N];
+            visited[xy.Item1, xy.Item2] = 1; // スタート地点を訪問済みに設定
+            queue.Enqueue((xy.Item1, xy.Item2, 1)); // (x座標, y座標, 距離)
+
+            while (queue.Count > 0)
+            {
+                var (x, y, dist) = queue.Dequeue();
+                if (y == goalY) return dist; // ゴールに到達した場合、距離を返す
+                (int, int)[] adjacent = { (x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1) }; // 上下左右の隣接セル
+                foreach (var (nx, ny) in adjacent)
+                {
+                    if (nx < 0 || nx >= Board.N || ny < 0 || ny >= Board.N) continue; // 盤外ならスキップ
+                    if (visited[nx, ny] > 0) continue; // 既に訪問済みならスキップ
+                    if (moveGraph[Board.xy2to1(x, y), Board.xy2to1(nx, ny)] == 0) continue; // 移動できないならスキップ
+
+                    visited[nx, ny] = dist + 1;
+                    queue.Enqueue((nx, ny, dist + 1));
+                }
+            }
+            return int.MaxValue; // ゴールに到達できない場合
         }
     }
 }

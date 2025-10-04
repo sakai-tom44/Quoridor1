@@ -31,6 +31,7 @@ namespace Quoridor1
         public Player[] player = new Player[2]; // プレイヤー配列 player[0]: 黒, player[1]: 白
 
         public int currentPlayer = 0; // 現在のプレイヤー（0または1）
+        public bool gameOver = false; // ゲーム終了フラグ
 
         public Renderer renderer; // 描画処理を担当するレンダラー
         public WallManager wallManager; // 壁の設置を管理するWallManager
@@ -58,8 +59,8 @@ namespace Quoridor1
             verticalWalls = new int[N, N];   // 縦壁をクリア
             moveGraph = new int[N * N, N * N]; // 移動グラフを初期化
 
-            player[0] = new Player(N / 2, N - 1, PlayerType.Random); // プレイヤー0を下端中央に配置
-            player[1] = new Player(N / 2, 0, PlayerType.Random);     // プレイヤー1を上端中央に配置
+            player[0] = new Player(N / 2, N - 1, PlayerType.Manual); // プレイヤー0を下端中央に配置
+            player[1] = new Player(N / 2, 0, PlayerType.AI);     // プレイヤー1を上端中央に配置
 
             // 各マス間の隣接関係を構築
             for (int x = 0; x < N; x++)
@@ -91,8 +92,25 @@ namespace Quoridor1
         public void RefreshBoard()
         {
             wallManager.RefreshMountable(); // 壁の設置可能位置を更新
-            player[0].RefreshNextMove(this, player[1]); // プレイヤー0の次の移動候補を更新
-            player[1].RefreshNextMove(this, player[0]); // プレイヤー1の次の移動候補を更新
+            player[0].RefreshPossibleMoves(this, player[1]); // プレイヤー0の次の移動候補を更新
+            player[1].RefreshPossibleMoves(this, player[0]); // プレイヤー1の次の移動候補を更新
+        }
+
+        /// <summary>
+        /// ゲーム終了を確認し、終了していればメッセージを表示。
+        /// </summary>
+        public void CheckGameOver()
+        {
+            if (player[0].y == 0) // プレイヤー0が上端に到達
+            {
+                gameOver = true;
+                MessageBox.Show("Black wins!");
+            }
+            else if (player[1].y == N - 1) // プレイヤー1が下端に到達
+            {
+                gameOver = true;
+                MessageBox.Show("White wins!");
+            }
         }
 
         /// <summary>
@@ -117,6 +135,7 @@ namespace Quoridor1
 
             RefreshBoard(); // 盤面情報を更新
             renderer.DrawBoard(); // 盤面を再描画
+            CheckGameOver(); // ゲーム終了を確認
         }
 
         /// <summary>

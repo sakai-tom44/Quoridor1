@@ -11,7 +11,7 @@ namespace Quoridor1
     public partial class GameForm : Form
     {
         private Board board; // ゲームボードのインスタンス
-        private Task task; // 非同期タスク用
+        private bool manualWait = false; // 手動操作待機フラグ
 
         /// <summary>
         /// コンストラクタ。フォームを初期化。
@@ -33,26 +33,30 @@ namespace Quoridor1
             // めんどくさくて非同期でUpdateを回すことにしたが将来的には絶対に修正する場所。
             // あらゆる問題の元凶になる可能性がある。
             // 次の候補としてasync/awaitで書き直すことを検討中。
-            task = Task.Run(() => // 非同期タスクで実行
+            Task.Run(() => // 非同期タスクで実行
             {
                 while (true) // 無限ループ
                 {
                     System.Threading.Thread.Sleep(1); // 待機してCPU負荷を軽減
-                    Update(); // ゲームの進行を更新
+
+                    if (board.gameOver) continue; // ゲームが終了している場合は何もしない
+                    if (board.player[board.currentPlayer].playerType == PlayerType.Manual) // 現在のプレイヤーが手動操作の場合
+                    {
+                        manualWait = true; // 手動操作待機フラグを立てる
+                        
+                        while (manualWait) // 手動操作待機中
+                        {
+                            System.Threading.Thread.Sleep(10); // 待機してCPU負荷を軽減
+                        }
+                    }
+                    else
+                    {
+                        board.ai.MakeMove(board.currentPlayer); // AIの手を実行
+                    }
+
+                    board.NextPlayer(); // 手番を次のプレイヤーに変更
                 }
             });
-        }
-
-        /// <summary>
-        /// ゲームの進行を更新するメソッド。
-        /// </summary>
-        /// (Unity の Update に相当させるつもり。)
-        private void Update()
-        {
-            if (board.player[board.currentPlayer].playerType != PlayerType.Manual) // 現在のプレイヤーが手動操作でない場合
-            {
-                board.ai.MakeMove(board.currentPlayer); // AIの手を実行
-            }
         }
 
         /// <summary>
@@ -89,6 +93,8 @@ namespace Quoridor1
         /// </summary>
         private void mouseShitei(int x, int y)
         {
+            if (board.gameOver) return; // ゲームが終了している場合は無視
+            if (!manualWait) return; // 手動操作待機中でない場合は無視
             if (board.player[board.currentPlayer].playerType != PlayerType.Manual) return; // 現在手番のプレイヤーが手動操作でない場合は無視
 
             bool acted = false; // 行動が成功したかどうかのフラグ
@@ -123,10 +129,10 @@ namespace Quoridor1
                 acted = board.TryMovePlayer(xi, yi); // プレイヤーを移動
             }
 
-            // 何か行動が成功した場合は盤面を再描画
+            // 何か行動が成功した場合は手番を終わる
             if (acted)
             {
-                board.NextPlayer(); // 手番を次のプレイヤーに変更
+                manualWait = false; // 手動操作待機フラグを下ろす
             }
         }
     }
