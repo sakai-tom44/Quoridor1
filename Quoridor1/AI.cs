@@ -26,7 +26,7 @@ namespace Quoridor1
             if (board.player[board.currentPlayer].playerType == PlayerType.Random)
                 return RandomMove(playerNumber);
             if (board.player[board.currentPlayer].playerType == PlayerType.AI)
-                return MinimaxMove(playerNumber, 2); // 深さ2でミニマックス法を使用
+                return MinimaxMove(playerNumber); // ミニマックス法を使用
 
 
             return false; // 該当する操作方法がない場合
@@ -103,8 +103,7 @@ namespace Quoridor1
         /// ミニマックス法を使用して最良の移動を決定し、実行。
         /// </summary>
         /// <param name="playerNumber">AIのプレイヤー番号 (0または1)</param>
-        /// <param name="depth">探索の深さ</param>
-        private bool MinimaxMove(int playerNumber, int depth)
+        private bool MinimaxMove(int playerNumber)
         {
             // 現在のプレイヤーと相手プレイヤーを取得
             (int,int) currentPlayer = board.player[board.currentPlayer].pos; // 自分

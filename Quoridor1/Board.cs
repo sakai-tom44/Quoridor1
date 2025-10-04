@@ -101,7 +101,7 @@ namespace Quoridor1
         /// </remarks>
         public void RefreshBoard()
         {
-            wallManager.RefreshMountable(); // 壁の設置可能位置を更新
+            wallManager.RefreshWallMountable(); // 壁の設置可能位置を更新
             player[0].RefreshPossibleMoves(this, player[1]); // プレイヤー0の次の移動候補を更新
             player[1].RefreshPossibleMoves(this, player[0]); // プレイヤー1の次の移動候補を更新
         }
