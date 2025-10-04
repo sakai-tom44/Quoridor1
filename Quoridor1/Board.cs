@@ -14,16 +14,23 @@ namespace Quoridor1
         public const int N = 9; // 盤面のサイズ（9x9）
         public const int lineWidth = 8; // 壁の太さ（ピクセル）
 
+        
+
         public int cellSize { get { return pictureBox.Width / Board.N; } } // 1マスのサイズ（ピクセル）
 
         public PictureBox pictureBox; // 盤を描画するPictureBox
 
         public int[,] horizontalWalls = new int[N, N]; // 横方向の壁を格納する配列
         public int[,] verticalWalls = new int[N, N];   // 縦方向の壁を格納する配列
+        public bool[,] horizontalMountable = new bool[N, N]; // 横壁設置可能位置
+        public bool[,] verticalMountable = new bool[N, N];   // 縦壁設置可能位置
+
         public int[,] moveGraph; // マス間の移動可能性を示す隣接行列
 
         public Player player0; // プレイヤー0
         public Player player1; // プレイヤー1
+
+        private WallManager wallManager; // 壁の設置を管理するWallManager
 
         /// <summary>
         /// コンストラクタ。PictureBoxを受け取り、盤を初期化。
@@ -31,6 +38,7 @@ namespace Quoridor1
         public Board(PictureBox pictureBox)
         {
             this.pictureBox = pictureBox; // 渡されたPictureBoxを保持
+            wallManager = new WallManager(this); // 壁マネージャーを初期化
 
             Reset(); // 盤面を初期化
         }
@@ -70,6 +78,7 @@ namespace Quoridor1
         }
         public void RefreshBoard()
         {
+            wallManager.RefreshMountable(); // 壁の設置可能位置を更新
             player0.RefreshNextMove(this, player1); // プレイヤー0の次の移動候補を更新
             player1.RefreshNextMove(this, player0); // プレイヤー1の次の移動候補を更新
         }

@@ -66,7 +66,7 @@ namespace Quoridor1
             {
                 int xi = (x - 10) / board.cellSize; // マスのx座標を計算
                 int yi = y / board.cellSize;       // マスのy座標を計算
-                if (wallManager.CheckWall(xi, yi, WallOrientation.Vertical))// 縦壁設置が合法か確認
+                if (board.verticalMountable[xi,yi])// 縦壁設置が合法か確認
                 {
                     acted = true; // 壁設置が成功した場合
                     wallManager.SetWall(xi, yi, WallOrientation.Vertical); // 縦壁設置
@@ -77,7 +77,7 @@ namespace Quoridor1
             {
                 int xi = x / board.cellSize;       // マスのx座標を計算
                 int yi = (y - 10) / board.cellSize; // マスのy座標を計算
-                if (wallManager.CheckWall(xi, yi, WallOrientation.Horizontal)) // 横壁設置が合法か確認
+                if (board.horizontalMountable[xi, yi]) // 横壁設置が合法か確認
                 {
                     acted = true; // 壁設置が成功した場合
                     wallManager.SetWall(xi, yi, WallOrientation.Horizontal); // 横壁設置

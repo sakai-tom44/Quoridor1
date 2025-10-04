@@ -19,7 +19,7 @@ namespace Quoridor1
         /// </summary>
         public void SetWall(int x, int y, WallOrientation wallOrientation)
         {
-            Console.WriteLine("SetWall: x={0}, y={1}, orientation={2}", x, y, wallOrientation);
+            //Console.WriteLine("SetWall: x={0}, y={1}, orientation={2}", x, y, wallOrientation);
 
             (int,int) xy1, xy2, xy3, xy4;
             (xy1, xy2, xy3, xy4) = Wall2xy4(x, y, wallOrientation); // 壁で遮断される4つのマスの座標を取得
@@ -37,7 +37,7 @@ namespace Quoridor1
         /// </summary>
         public bool CheckWall(int x, int y, WallOrientation wallOrientation)
         {
-            Console.WriteLine("CheckWall: x={0}, y={1}, orientation={2}", x, y, wallOrientation);
+            //Console.WriteLine("CheckWall: x={0}, y={1}, orientation={2}", x, y, wallOrientation);
 
             (int, int) xy1, xy2, xy3, xy4;
             (xy1, xy2, xy3, xy4) = Wall2xy4(x, y, wallOrientation); // 壁で遮断される4つのマスの座標を取得
@@ -144,6 +144,19 @@ namespace Quoridor1
             }
             //Console.WriteLine("接続が断たれた");
             return false;
+        }
+
+        /// <summary>
+        /// 壁を置ける場所を再計算して更新。
+        /// </summary>
+        public void RefreshMountable()
+        {
+            for (int x = 0; x < Board.N - 1; x++) // 端には置けないので-1まで
+                for (int y = 0; y < Board.N - 1; y++) // 端には置けないので-1まで
+                {
+                    board.horizontalMountable[x, y] = CheckWall(x, y, WallOrientation.Horizontal) ? true : false; // 横壁を置けるか確認して更新
+                    board.verticalMountable[x, y] = CheckWall(x, y, WallOrientation.Vertical) ? true : false; // 縦壁を置けるか確認して更新
+                }
         }
     }
 }
