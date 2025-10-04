@@ -57,7 +57,7 @@ namespace Quoridor1
             verticalWalls = new int[N, N];   // 縦壁をクリア
             moveGraph = new int[N * N, N * N]; // 移動グラフを初期化
 
-            player[0] = new Player(N / 2, N - 1, PlayerType.Manual); // プレイヤー0を下端中央に配置
+            player[0] = new Player(N / 2, N - 1, PlayerType.AI); // プレイヤー0を下端中央に配置
             player[1] = new Player(N / 2, 0, PlayerType.AI);     // プレイヤー1を上端中央に配置
 
             // 各マス間の隣接関係を構築

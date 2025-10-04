@@ -29,6 +29,7 @@
         private void InitializeComponent()
         {
             pictureBox1 = new PictureBox();
+            button1 = new Button();
             ((System.ComponentModel.ISupportInitialize)pictureBox1).BeginInit();
             SuspendLayout();
             // 
@@ -43,14 +44,25 @@
             pictureBox1.TabStop = false;
             pictureBox1.MouseUp += pictureBox1_MouseUp;
             // 
-            // Form1
+            // button1
+            // 
+            button1.Location = new Point(989, 16);
+            button1.Name = "button1";
+            button1.Size = new Size(128, 35);
+            button1.TabIndex = 1;
+            button1.Text = "リセット";
+            button1.UseVisualStyleBackColor = true;
+            button1.Click += Reset_Button_Click;
+            // 
+            // GameForm
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(1019, 937);
+            ClientSize = new Size(1169, 937);
+            Controls.Add(button1);
             Controls.Add(pictureBox1);
             Margin = new Padding(3, 2, 3, 2);
-            Name = "Form1";
+            Name = "GameForm";
             Text = "Form1";
             Load += Form1_Load;
             ((System.ComponentModel.ISupportInitialize)pictureBox1).EndInit();
@@ -60,5 +72,6 @@
         #endregion
 
         private PictureBox pictureBox1;
+        private Button button1;
     }
 }
