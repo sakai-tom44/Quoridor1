@@ -92,4 +92,12 @@ namespace Quoridor1
         /// </summary>
         public static int xy2to1(int x, int y) => x + N * y; // x + y行分で計算
     }
+
+
+    /// 壁の方向を表す列挙型
+    public enum WallOrientation
+    {
+        Horizontal, // 横壁
+        Vertical    // 縦壁
+    }
 }
