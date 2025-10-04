@@ -13,8 +13,9 @@ namespace Quoridor1
     {
         public const int N = 9; // 盤面のサイズ（9x9）
         public const int lineWidth = 8; // 壁の太さ（ピクセル）
+        public const int wallCount = 10; // 各プレイヤーの壁の数
 
-        
+
 
         public int cellSize { get { return pictureBox.Width / Board.N; } } // 1マスのサイズ（ピクセル）
 
@@ -57,8 +58,8 @@ namespace Quoridor1
             verticalWalls = new int[N, N];   // 縦壁をクリア
             moveGraph = new int[N * N, N * N]; // 移動グラフを初期化
 
-            player[0] = new Player(N / 2, N - 1, PlayerType.AI); // プレイヤー0を下端中央に配置
-            player[1] = new Player(N / 2, 0, PlayerType.AI);     // プレイヤー1を上端中央に配置
+            player[0] = new Player(N / 2, N - 1, PlayerType.Random); // プレイヤー0を下端中央に配置
+            player[1] = new Player(N / 2, 0, PlayerType.Random);     // プレイヤー1を上端中央に配置
 
             // 各マス間の隣接関係を構築
             for (int x = 0; x < N; x++)

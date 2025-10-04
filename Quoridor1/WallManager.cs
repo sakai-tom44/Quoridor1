@@ -17,9 +17,9 @@ namespace Quoridor1
         /// <summary>
         /// 壁を設置する。
         /// </summary>
-        public void SetWall(int x, int y, WallOrientation wallOrientation)
+        public void PlaceWall(int x, int y, WallOrientation wallOrientation)
         {
-            //Console.WriteLine("SetWall: x={0}, y={1}, orientation={2}", x, y, wallOrientation);
+            //Console.WriteLine("PlaceWall: x={0}, y={1}, orientation={2}", x, y, wallOrientation);
 
             (int,int) xy1, xy2, xy3, xy4;
             (xy1, xy2, xy3, xy4) = Wall2xy4(x, y, wallOrientation); // 壁で遮断される4つのマスの座標を取得
@@ -30,6 +30,7 @@ namespace Quoridor1
             else // 横壁の場合
                 board.horizontalWalls[x, y] = board.horizontalWalls[x + 1, y] = 2; // 壁を確定設置
 
+            board.player[board.currentPlayer].placeWallCount++; // 現在のプレイヤーの設置した壁の数を増やす
         }
 
         /// <summary>
@@ -38,6 +39,8 @@ namespace Quoridor1
         public bool CheckWall(int x, int y, WallOrientation wallOrientation)
         {
             //Console.WriteLine("CheckWall: x={0}, y={1}, orientation={2}", x, y, wallOrientation);
+
+            if (board.player[board.currentPlayer].placeWallCount >= Board.wallCount) return false; // 既に壁を置き切っているなら不可
 
             (int, int) xy1, xy2, xy3, xy4;
             (xy1, xy2, xy3, xy4) = Wall2xy4(x, y, wallOrientation); // 壁で遮断される4つのマスの座標を取得

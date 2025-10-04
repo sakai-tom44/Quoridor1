@@ -2,9 +2,10 @@
 {
     public class Player
     {
-        public int x, y, k;
-        public List<(int,int)> possibleMoves;
-        public PlayerType playerType;
+        public int x, y, k; // x,yは現在位置、kは1次元配列での位置
+        public List<(int,int)> possibleMoves; // 次の移動候補
+        public PlayerType playerType; // プレイヤーの操作方法の種類
+        public int placeWallCount = 0; // 置いた壁の数
 
         public Player(int startX, int startY, PlayerType playerType)
         {
@@ -91,6 +92,6 @@
     /// <summary>
     /// プレイヤーの操作方法の種類
     /// </summary>
-    public enum PlayerType { Manual, AI }
+    public enum PlayerType { Manual, Random , AI}
 }
 

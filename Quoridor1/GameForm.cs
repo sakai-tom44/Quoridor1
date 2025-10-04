@@ -101,7 +101,7 @@ namespace Quoridor1
                 if (board.verticalMountable[xi, yi])// 縦壁設置が合法か確認
                 {
                     acted = true; // 壁設置が成功した場合
-                    board.wallManager.SetWall(xi, yi, WallOrientation.Vertical); // 縦壁設置
+                    board.wallManager.PlaceWall(xi, yi, WallOrientation.Vertical); // 縦壁設置
                 }
             }
             // 横壁設置の判定（セル境界付近のy座標かどうか）
@@ -112,7 +112,7 @@ namespace Quoridor1
                 if (board.horizontalMountable[xi, yi]) // 横壁設置が合法か確認
                 {
                     acted = true; // 壁設置が成功した場合
-                    board.wallManager.SetWall(xi, yi, WallOrientation.Horizontal); // 横壁設置
+                    board.wallManager.PlaceWall(xi, yi, WallOrientation.Horizontal); // 横壁設置
                 }
             }
             // 壁でなければプレイヤーの移動を試みる
