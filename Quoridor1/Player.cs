@@ -3,13 +3,15 @@
     public class Player
     {
         public int x, y, k;
-        public List<(int,int)> nextMove;
+        public List<(int,int)> possibleMoves;
+        public PlayerType playerType;
 
-        public Player(int startX, int startY)
+        public Player(int startX, int startY, PlayerType playerType)
         {
             x = startX;
             y = startY;
             k = Board.xy2to1(x, y);
+            this.playerType = playerType;
         }
 
         public void Move(int newX, int newY, int newK)
@@ -24,7 +26,7 @@
         /// <param name="opponent">対戦相手を指定</param>
         public void RefreshNextMove(Board board, Player opponent)
         {
-            nextMove = new List<(int,int)>(); // 次の移動候補をクリア
+            possibleMoves = new List<(int,int)>(); // 次の移動候補をクリア
 
             List<(int,int)> moveStack = new List<(int,int)>() {(0, 1), (1, 0), (0, -1), (-1, 0)}; // 上下左右の移動ベクトル
 
@@ -52,7 +54,7 @@
                     }
                     if (flag) // 相手の向こう側に移動できるなら
                     {
-                        nextMove.Add((xi2, yi2)); // 相手の向こう側に移動候補を追加
+                        possibleMoves.Add((xi2, yi2)); // 相手の向こう側に移動候補を追加
                     }
                     else // 相手の向こう側に移動できないなら、横に回避できるか確認
                     {
@@ -74,17 +76,21 @@
                             if ((xi3 < 0) || (xi3 >= Board.N) || (yi3 < 0) || (yi3 >= Board.N)) continue; // 盤外ならスキップ
                             if (board.moveGraph[Board.xy2to1(opponent.x, opponent.y), Board.xy2to1(xi3, yi3)] == 1) // 横に回避できるなら
                             {
-                                nextMove.Add((xi3, yi3)); // 回避先に移動候補を追加
+                                possibleMoves.Add((xi3, yi3)); // 回避先に移動候補を追加
                             }
                         }
                     }
                 }
                 else // 相手のいないマスに移動する場合
                 {
-                    nextMove.Add((xi, yi)); // 移動候補を追加
+                    possibleMoves.Add((xi, yi)); // 移動候補を追加
                 }
             }
         }
     }
+    /// <summary>
+    /// プレイヤーの操作方法の種類
+    /// </summary>
+    public enum PlayerType { Manual, AI }
 }
 

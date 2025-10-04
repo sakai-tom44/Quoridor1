@@ -27,10 +27,13 @@ namespace Quoridor1
 
         public int[,] moveGraph; // マス間の移動可能性を示す隣接行列
 
-        public Player player0; // プレイヤー0
-        public Player player1; // プレイヤー1
+        public Player[] player = new Player[2]; // プレイヤー配列 player[0]: 黒, player[1]: 白
 
-        private WallManager wallManager; // 壁の設置を管理するWallManager
+        public int currentPlayer = 0; // 現在のプレイヤー（0または1）
+
+        public Renderer renderer; // 描画処理を担当するレンダラー
+        public WallManager wallManager; // 壁の設置を管理するWallManager
+        public AI ai; // AIプレイヤーを管理するAIクラス
 
         /// <summary>
         /// コンストラクタ。PictureBoxを受け取り、盤を初期化。
@@ -39,6 +42,8 @@ namespace Quoridor1
         {
             this.pictureBox = pictureBox; // 渡されたPictureBoxを保持
             wallManager = new WallManager(this); // 壁マネージャーを初期化
+            renderer = new Renderer(this); // ボードに基づくレンダラーを作成
+            ai = new AI(this); // AIマネージャーを初期化
 
             Reset(); // 盤面を初期化
         }
@@ -52,8 +57,8 @@ namespace Quoridor1
             verticalWalls = new int[N, N];   // 縦壁をクリア
             moveGraph = new int[N * N, N * N]; // 移動グラフを初期化
 
-            player0 = new Player(N / 2, N - 1); // プレイヤー0を下端中央に配置
-            player1 = new Player(N / 2, 0);     // プレイヤー1を上端中央に配置
+            player[0] = new Player(N / 2, N - 1, PlayerType.Manual); // プレイヤー0を下端中央に配置
+            player[1] = new Player(N / 2, 0, PlayerType.AI);     // プレイヤー1を上端中央に配置
 
             // 各マス間の隣接関係を構築
             for (int x = 0; x < N; x++)
@@ -76,37 +81,46 @@ namespace Quoridor1
 
             RefreshBoard(); // 盤面情報を更新
         }
+        /// <summary>
+        /// 盤面の状態を更新
+        /// </summary>
+        /// <remarks>
+        /// 壁配置の有効な位置を更新し、現在のゲーム状態に基づいて両プレイヤーの次の可能な手を再計算
+        /// </remarks>
         public void RefreshBoard()
         {
             wallManager.RefreshMountable(); // 壁の設置可能位置を更新
-            player0.RefreshNextMove(this, player1); // プレイヤー0の次の移動候補を更新
-            player1.RefreshNextMove(this, player0); // プレイヤー1の次の移動候補を更新
+            player[0].RefreshNextMove(this, player[1]); // プレイヤー0の次の移動候補を更新
+            player[1].RefreshNextMove(this, player[0]); // プレイヤー1の次の移動候補を更新
         }
 
         /// <summary>
-        /// プレイヤー0を指定座標へ移動させる。
+        /// プレイヤーを指定座標へ移動させる。
         /// </summary>
-        public bool TryMovePlayer0(int xi, int yi)
+        public bool TryMovePlayer(int xi, int yi)
         {
-            if (player0.nextMove.IndexOf((xi, yi)) >= 0)
+            if (player[currentPlayer].possibleMoves.IndexOf((xi, yi)) >= 0) // 移動可能な位置か確認
             {
-                player0.Move(xi, yi, xy2to1(xi, yi)); // プレイヤー0を移動
+                player[currentPlayer].Move(xi, yi, xy2to1(xi, yi)); // プレイヤーを移動
                 return true; // 移動成功
             }
             return false; // 移動失敗
         }
 
         /// <summary>
+        /// 手番を交代する。
+        /// </summary>
+        public void NextPlayer()
+        {
+            currentPlayer = 1 - currentPlayer; // 手番を交代
+
+            RefreshBoard(); // 盤面情報を更新
+            renderer.DrawBoard(); // 盤面を再描画
+        }
+
+        /// <summary>
         /// (x,y)座標を1次元のインデックスに変換。
         /// </summary>
         public static int xy2to1(int x, int y) => x + N * y; // x + y行分で計算
-    }
-
-
-    /// 壁の方向を表す列挙型
-    public enum WallOrientation
-    {
-        Horizontal, // 横壁
-        Vertical    // 縦壁
     }
 }

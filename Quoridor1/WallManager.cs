@@ -159,4 +159,8 @@ namespace Quoridor1
                 }
         }
     }
+    /// <summary>
+    /// 壁の方向を表す列挙型
+    /// </summary>
+    public enum WallOrientation { Horizontal, Vertical}
 }

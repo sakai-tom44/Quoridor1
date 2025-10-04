@@ -11,8 +11,6 @@ namespace Quoridor1
     public partial class GameForm : Form
     {
         private Board board; // ゲームボードのインスタンス
-        private Renderer renderer; // 描画処理を担当するレンダラー
-        private WallManager wallManager; // 壁の設置を管理するマネージャー
 
         /// <summary>
         /// コンストラクタ。フォームを初期化。
@@ -32,16 +30,37 @@ namespace Quoridor1
         }
 
         /// <summary>
+        /// ゲームの進行を管理し、AIプレイヤーの操作を担う
+        /// </summary>
+        /// <remarks> 現在のプレイヤーのターンを継続的に監視し、
+        /// <see cref="PlayerType.AI"/> タイプのプレイヤーに対して自動的に手番を実行。
+        /// メインスレッドをブロックしないよう非同期で実行。</remarks>
+        private void gameProgress()
+        { 
+            bool _loop = true;
+            var _ = Task.Run(() => // 非同期タスクで実行
+            {
+                while (_loop) // 無限ループ
+                {
+                    System.Threading.Thread.Sleep(100); // 100ミリ秒待機してCPU負荷を軽減
+                    if (board.player[board.currentPlayer].playerType == PlayerType.AI) // 現在のプレイヤーがAIの場合
+                    {
+                        board.ai.MakeMove(board.currentPlayer); // AIの手を実行
+                    }
+                }
+            });
+        }
+
+        /// <summary>
         /// ゲームをリセットし、新しいBoardとRendererを生成して描画。
         /// </summary>
         private void reset()
         {
             board = new Board(pictureBox1); // 新しい盤を生成してPictureBoxに関連付け
 
-            renderer = new Renderer(board); // ボードに基づくレンダラーを作成
-            renderer.DrawBoard(); // 初期盤を描画
+            board.renderer.DrawBoard(); // 初期盤を描画
 
-            wallManager = new WallManager(board); // 壁マネージャーを初期化
+            gameProgress(); // ゲーム進行のループを開始
         }
 
         /// <summary>
@@ -59,6 +78,8 @@ namespace Quoridor1
         /// </summary>
         private void mouseShitei(int x, int y)
         {
+            if (board.player[board.currentPlayer].playerType != PlayerType.Manual) return; // 現在手番のプレイヤーが手動操作でない場合は無視
+
             bool acted = false; // 行動が成功したかどうかのフラグ
 
             // 縦壁設置の判定（セル境界付近のx座標かどうか）
@@ -69,7 +90,7 @@ namespace Quoridor1
                 if (board.verticalMountable[xi,yi])// 縦壁設置が合法か確認
                 {
                     acted = true; // 壁設置が成功した場合
-                    wallManager.SetWall(xi, yi, WallOrientation.Vertical); // 縦壁設置
+                    board.wallManager.SetWall(xi, yi, WallOrientation.Vertical); // 縦壁設置
                 }
             }
             // 横壁設置の判定（セル境界付近のy座標かどうか）
@@ -80,7 +101,7 @@ namespace Quoridor1
                 if (board.horizontalMountable[xi, yi]) // 横壁設置が合法か確認
                 {
                     acted = true; // 壁設置が成功した場合
-                    wallManager.SetWall(xi, yi, WallOrientation.Horizontal); // 横壁設置
+                    board.wallManager.SetWall(xi, yi, WallOrientation.Horizontal); // 横壁設置
                 }
             }
             // 壁でなければプレイヤーの移動を試みる
@@ -88,14 +109,13 @@ namespace Quoridor1
             {
                 int xi = x / board.cellSize; // マスのx座標を計算
                 int yi = y / board.cellSize; // マスのy座標を計算
-                acted = board.TryMovePlayer0(xi, yi); // プレイヤー0を移動
+                acted = board.TryMovePlayer(xi, yi); // プレイヤーを移動
             }
 
             // 何か行動が成功した場合は盤面を再描画
             if (acted)
             {
-                board.RefreshBoard(); // 盤面情報を更新
-                renderer.DrawBoard(); // 盤面を再描画
+                board.NextPlayer(); // 手番を次のプレイヤーに変更
             }
         }
     }

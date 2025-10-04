@@ -66,8 +66,8 @@ namespace Quoridor1
                 }
 
                 // プレイヤーを描画（黒：player0, 白：player1）
-                DrawPlayer(g, Brushes.White, board.player1);
-                DrawPlayer(g, Brushes.Black, board.player0);
+                DrawPlayer(g, Brushes.White, 1);
+                DrawPlayer(g, Brushes.Black, 0);
             }
 
             // 既存の画像を破棄し、新しい描画結果をPictureBoxに設定
@@ -81,21 +81,22 @@ namespace Quoridor1
         /// <param name="g">Graphicsオブジェクト</param>
         /// <param name="brush">プレイヤーの色を指定するブラシ</param>
         /// <param name="p">描画対象のプレイヤー</param>
-        private void DrawPlayer(Graphics g, Brush brush, Player p)
+        private void DrawPlayer(Graphics g, Brush brush, int playerNumber)
         {
             // プレイヤーの座標をセル単位からピクセル座標に変換
-            int x = p.x * cellSize + 2; // 左上のx座標（2px余白）
-            int y = p.y * cellSize + 2; // 左上のy座標（2px余白）
+            int x = board.player[playerNumber].x * cellSize + 2; // 左上のx座標（2px余白）
+            int y = board.player[playerNumber].y * cellSize + 2; // 左上のy座標（2px余白）
 
             // プレイヤーを楕円（実質的には円）として塗りつぶし描画
             g.FillEllipse(brush, x, y, cellSize - 4, cellSize - 4);
 
-            if (p.nextMove == null) return; // nextMoveが未設定なら終了
-            foreach ((int,int) move in p.nextMove)
+            if (playerNumber != board.currentPlayer) return; // 手番のプレイヤーでなければ次の手を描かない
+            if (board.player[playerNumber].possibleMoves == null) return; // nextMoveが未設定なら終了
+            foreach ((int,int) move in board.player[playerNumber].possibleMoves) // nextMoveに含まれる各移動候補位置に対して
             {
                 int x2 = move.Item1 * cellSize + cellSize * 3/8;
                 int y2 = move.Item2 * cellSize + cellSize * 3/8;
-                g.FillEllipse(brush, x2, y2, cellSize/4, cellSize/4);
+                g.FillEllipse(brush, x2, y2, cellSize/4, cellSize/4); // 小さな円を描画
             }
         }
     }
