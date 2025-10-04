@@ -24,7 +24,7 @@ namespace Quoridor1
             (int,int) xy1, xy2, xy3, xy4;
             (xy1, xy2, xy3, xy4) = Wall2xy4(x, y, wallOrientation); // 壁で遮断される4つのマスの座標を取得
 
-            Disconnect(xy1, xy2, xy3, xy4); // 壁を置いて道を切断
+            board.moveGraph = Disconnect(xy1, xy2, xy3, xy4, board.moveGraph); // 壁を置いて道を切断
             if (wallOrientation == WallOrientation.Vertical) // 縦壁の場合
                 board.verticalWalls[x, y] = board.verticalWalls[x, y + 1] = 2; // 壁を確定設置
             else // 横壁の場合
@@ -64,7 +64,7 @@ namespace Quoridor1
         /// <summary>
         /// x,y座標と壁の向きから、壁で遮断される4つのマスの座標を返す。
         /// </summary>
-        private ((int,int), (int, int), (int, int), (int, int)) Wall2xy4(int x, int y, WallOrientation wallOrientation)
+        public static ((int,int), (int, int), (int, int), (int, int)) Wall2xy4(int x, int y, WallOrientation wallOrientation)
         {
             if (wallOrientation == WallOrientation.Vertical) // 縦壁の場合
                 return ((x, y), (x + 1, y), (x, y + 1), (x + 1, y + 1)); // 縦壁で遮断される4つのマスの座標
@@ -73,19 +73,26 @@ namespace Quoridor1
         }
 
         /// <summary>
-        /// 壁を置き道を切断
+        /// 壁を置いた場合の移動グラフを返す。
         /// </summary>
-        private void Disconnect((int, int) xy1, (int, int) xy2, (int, int) xy3, (int, int) xy4)
+        /// <param name="moveGraph">元の移動グラフ</param>
+        /// <returns>壁を置いた後の移動グラフ</returns>
+        public static int[,] Disconnect((int, int) xy1, (int, int) xy2, (int, int) xy3, (int, int) xy4, int[,] moveGraph)
         {
+            int[,] copyGraph = new int[moveGraph.GetLength(0), moveGraph.GetLength(1)]; // moveGraphのコピーを作成
+            Array.Copy(moveGraph, copyGraph, moveGraph.Length); // コピーを作成
+
             int k1 = Board.xy2to1(xy1.Item1, xy1.Item2); //　壁の座標から1次元インデックスに変換
             int k2 = Board.xy2to1(xy2.Item1, xy2.Item2);
             int k3 = Board.xy2to1(xy3.Item1, xy3.Item2);
             int k4 = Board.xy2to1(xy4.Item1, xy4.Item2);
 
-            board.moveGraph[k1, k2] = 0; // k1とk2、k3とk4の接続を遮断
-            board.moveGraph[k2, k1] = 0;
-            board.moveGraph[k3, k4] = 0;
-            board.moveGraph[k4, k3] = 0;
+            copyGraph[k1, k2] = 0; // k1とk2、k3とk4の接続を遮断
+            copyGraph[k2, k1] = 0;
+            copyGraph[k3, k4] = 0;
+            copyGraph[k4, k3] = 0;
+
+            return copyGraph;
         }
 
         /// <summary>

@@ -110,20 +110,58 @@ namespace Quoridor1
             (int,int) currentPlayer = board.player[board.currentPlayer].pos; // 自分
             (int,int) opponentPlayer = board.player[1 - board.currentPlayer].pos; // 相手
             var moveGraph = board.moveGraph; // 移動可能グラフ
-            int bestScore = int.MinValue; // 最良のスコアを初期化
+            int bestMoveScore = int.MinValue; // 最良の移動スコアを初期化
             (int, int)? bestMove = null; // 最良の移動を初期化
+            int bestWallScore = int.MinValue; // 最良の壁設置スコアを初期化
+            (int, int, WallOrientation)? bestWall = null; // 最良の壁設置を初期化
+
             foreach (var move in board.player[board.currentPlayer].possibleMoves) // 各移動候補に対して
             {
                 // 評価関数を使用して盤面を評価
                 int score = EvaluateBoardState(move, opponentPlayer, moveGraph, playerNumber);
                 // 最良のスコアと移動を更新
-                if (score > bestScore)
+                if (score > bestMoveScore)
                 {
-                    bestScore = score;
+                    bestMoveScore = score;
                     bestMove = move;
                 }
             }
-            if (bestMove.HasValue)
+            
+            foreach (var wall in board.verticalMountableList) // 各設置可能な縦壁に対して
+            {
+                (int,int) xy1, xy2, xy3, xy4;
+                (xy1, xy2, xy3, xy4) = WallManager.Wall2xy4(wall.Item1, wall.Item2, WallOrientation.Vertical); // 壁で遮断される4つのマスの座標を取得
+                int[,] dummyGraph = WallManager.Disconnect(xy1, xy2, xy3, xy4, moveGraph); // 壁を置いた場合の移動グラフを生成
+                int score = EvaluateBoardState(currentPlayer, opponentPlayer, dummyGraph, playerNumber);
+                // 最良のスコアと壁設置を更新
+                if (score > bestWallScore)
+                {
+                    bestWallScore = score;
+                    bestWall = (wall.Item1, wall.Item2, WallOrientation.Vertical);
+                }
+            }
+
+            foreach (var wall in board.horizontalMountableList) // 各設置可能な横壁に対して
+            {
+                (int, int) xy1, xy2, xy3, xy4;
+                (xy1, xy2, xy3, xy4) = WallManager.Wall2xy4(wall.Item1, wall.Item2, WallOrientation.Horizontal); // 壁で遮断される4つのマスの座標を取得
+                int[,] dummyGraph = WallManager.Disconnect(xy1, xy2, xy3, xy4, moveGraph); // 壁を置いた場合の移動グラフを生成
+                int score = EvaluateBoardState(currentPlayer, opponentPlayer, dummyGraph, playerNumber);
+                // 最良のスコアと壁設置を更新
+                if (score > bestWallScore)
+                {
+                    bestWallScore = score;
+                    bestWall = (wall.Item1, wall.Item2, WallOrientation.Horizontal);
+                }
+            }
+
+            if (bestWallScore > bestMoveScore && bestWall.HasValue)
+            {
+                // 最良の壁設置を実行
+                board.wallManager.PlaceWall(bestWall.Value.Item1, bestWall.Value.Item2, bestWall.Value.Item3);
+                return true; // 壁の設置が成功したことを示す
+            }
+            else if (bestMove.HasValue)
             {
                 // 最良の移動を実行
                 board.player[board.currentPlayer].x = bestMove.Value.Item1;
@@ -139,17 +177,15 @@ namespace Quoridor1
         /// AIの戦略に応じて調整可能。
         private int EvaluateBoardState((int,int) current, (int, int) opponent, int[,] moveGraph, int playerNumber)
         {
-            Console.WriteLine("EvaluateBoardState: current=({0},{1}), opponent=({2},{3})", current.Item1, current.Item2, opponent.Item1, opponent.Item2);
             // 盤面の評価関数を実装
             // 例えば、各プレイヤーのゴールまでの最短距離を計算し、その差を評価値とする
             int score = 0;
             int currentDistance = ShortestPathToGoal(current, moveGraph, (playerNumber) * (Board.N - 1));// 自分のゴールまでの距離を計算
             int opponentDistance = ShortestPathToGoal(opponent, moveGraph, (1 - playerNumber) * (Board.N - 1));// 相手のゴールまでの距離を計算
             // 評価値を計算（距離が短いほど高評価）
-            score += (opponentDistance - currentDistance) * 10; // 自分が有利なら正のスコア
+            score += (opponentDistance - currentDistance/2) * 10; // 自分が有利なら正のスコア
             // 壁の数も考慮（壁が多いほど有利）
-            score += (board.player[playerNumber].placeWallCount - board.player[1 - playerNumber].placeWallCount) * 5;
-            Console.WriteLine("Score: {0}", score);
+            score += (board.player[playerNumber].placeWallCount - board.player[1 - playerNumber].placeWallCount) * 10;
             return score;
         }
 

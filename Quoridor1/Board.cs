@@ -24,7 +24,17 @@ namespace Quoridor1
         public int[,] horizontalWalls = new int[N, N]; // 横方向の壁を格納する配列
         public int[,] verticalWalls = new int[N, N];   // 縦方向の壁を格納する配列
         public bool[,] horizontalMountable = new bool[N, N]; // 横壁設置可能位置
+        public List<(int,int)> horizontalMountableList { get{ return bool2xyList(horizontalMountable);} } // 横壁設置可能位置のリスト
         public bool[,] verticalMountable = new bool[N, N];   // 縦壁設置可能位置
+        public List<(int, int)> verticalMountableList { get { return bool2xyList(verticalMountable); } } // 縦壁設置可能位置のリスト
+        private static List<(int, int)> bool2xyList(bool[,] b) // bool配列から(x,y)リストを作成
+        {
+            List<(int, int)> list = new List<(int, int)>();
+            for (int x = 0; x < N - 1; x++)
+                for (int y = 0; y < N - 1; y++)
+                    if (b[x, y]) list.Add((x, y));
+            return list;
+        }
 
         public int[,] moveGraph; // マス間の移動可能性を示す隣接行列
 
