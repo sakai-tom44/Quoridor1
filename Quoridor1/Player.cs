@@ -39,8 +39,18 @@
                 {
                     int xi2 = xi + stack.Item1; // 相手の向こう側のマス
                     int yi2 = yi + stack.Item2;// 相手の向こう側のマス
-                    if ((xi2 < 0) || (xi2 >= Board.N) || (yi2 < 0) || (yi2 >= Board.N)) continue; // 盤外ならスキップ
-                    if (board.moveGraph[Board.xy2to1(xi, yi), Board.xy2to1(xi2, yi2)] == 1) // 相手の向こう側に移動できるなら
+
+                    bool flag = false; // 相手の向こう側に移動できるかどうかのフラグ
+
+                    // 一つの条件分岐にまとめてmoveGraphを参照すると配列の長さの外を参照する可能性があるため、二段階に分けて確認(エラー回避)
+                    if (!((xi2 < 0) || (xi2 >= Board.N) || (yi2 < 0) || (yi2 >= Board.N))) // 相手の向こう側のマスが盤外でなくかつ↓
+                    { 
+                        if (board.moveGraph[Board.xy2to1(xi, yi), Board.xy2to1(xi2, yi2)] == 1) // 相手の向こう側に移動できるなら
+                        {
+                            flag = true;
+                        }
+                    }
+                    if (flag) // 相手の向こう側に移動できるなら
                     {
                         nextMove.Add((xi2, yi2)); // 相手の向こう側に移動候補を追加
                     }
