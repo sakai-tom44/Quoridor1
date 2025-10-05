@@ -37,5 +37,21 @@ namespace Quoridor1
                 Console.WriteLine(str1 + "|" + str2);
             }
         }
+
+        public static void DebugPrintVisited(int[,] visited)
+        {
+            string l = "";
+            for (int y = 0; y < Board.N; y++)
+            {
+                string s = "";
+                for (int x = 0; x < Board.N; x++)
+                {
+                    s += $"{visited[x, y],3} ";
+                }
+                l += s + "\n";
+            }
+            Console.WriteLine(l);
+            Console.WriteLine("-----------------");
+        }
     }
 }

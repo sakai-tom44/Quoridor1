@@ -15,6 +15,8 @@ namespace Quoridor1
 
         public int cellSize { get { return pictureBox1.Width / Board.N; } } // 1マスのサイズ（ピクセル）
 
+        public EvaluateParam[] evaluateParams = new EvaluateParam[2] { new EvaluateParam(), new EvaluateParam() }; // 評価関数のパラメータ
+
         /// <summary>
         /// コンストラクタ。フォームを初期化。
         /// </summary>
@@ -41,7 +43,15 @@ namespace Quoridor1
                 {
                     System.Threading.Thread.Sleep(1); // 待機してCPU負荷を軽減
 
-                    if (mainBoard.gameOver) continue; // ゲームが終了している場合は何もしない
+                    if (mainBoard.gameOver)
+                    {
+                        if (Board.autoReset) // 自動リセットが有効なら
+                        {
+                            System.Threading.Thread.Sleep(500); // 0.5秒待機
+                            reset(); // ゲームをリセット
+                        }
+                        continue; // ゲームが終了している場合は何もしない
+                    }
                     if (mainBoard.player[mainBoard.currentPlayerNumber].playerType == PlayerType.Manual) // 現在のプレイヤーが手動操作の場合
                     {
                         manualWait = true; // 手動操作待機フラグを立てる
@@ -77,7 +87,7 @@ namespace Quoridor1
         /// </summary>
         private void reset()
         {
-            mainBoard = new Board(); // 新しい盤を生成してPictureBoxに関連付け
+            mainBoard = new Board(evaluateParams); // 新しい盤を生成してPictureBoxに関連付け
 
             Renderer.DrawBoard(mainBoard, pictureBox1); // 初期盤を描画
         }
@@ -111,7 +121,7 @@ namespace Quoridor1
                 if (mainBoard.verticalMountable[xi, yi])// 縦壁設置が合法か確認
                 {
                     acted = true; // 壁設置が成功した場合
-                    WallManager.PlaceWall(mainBoard, xi, yi, WallOrientation.Vertical); // 縦壁設置
+                    mainBoard.wallManager.PlaceWall(xi, yi, WallOrientation.Vertical); // 縦壁設置
                 }
             }
             // 横壁設置の判定（セル境界付近のy座標かどうか）
@@ -122,7 +132,7 @@ namespace Quoridor1
                 if (mainBoard.horizontalMountable[xi, yi]) // 横壁設置が合法か確認
                 {
                     acted = true; // 壁設置が成功した場合
-                    WallManager.PlaceWall(mainBoard, xi, yi, WallOrientation.Horizontal); // 横壁設置
+                    mainBoard.wallManager.PlaceWall(xi, yi, WallOrientation.Horizontal); // 横壁設置
                 }
             }
             // 壁でなければプレイヤーの移動を試みる

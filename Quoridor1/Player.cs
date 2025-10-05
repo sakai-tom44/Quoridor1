@@ -12,8 +12,16 @@
         {
             x = startX;
             y = startY;
-            k = Board.xy2to1(x, y);
+            k = x + Board.N * y;
             this.playerType = playerType;
+        }
+
+        public Player Clone() // プレイヤーのディープコピーを作成
+        {
+            Player p = new Player(this.x, this.y, this.playerType);
+            p.placeWallCount = this.placeWallCount;
+            p.possibleMoves = new List<(int, int)>(this.possibleMoves);
+            return p;
         }
 
         public void Move(int newX, int newY, int newK)
@@ -54,7 +62,7 @@
                 int yi = stack.Item2 + y; // 移動先のy座標
 
                 if ((xi < 0) || (xi >= Board.N) || (yi < 0) || (yi >= Board.N)) continue; // 盤外ならスキップ
-                if (moveGraph[Board.xy2to1(x, y), Board.xy2to1(xi, yi)] == 0) continue; // 移動できないならスキップ
+                if (moveGraph[x + Board.N * y, xi + Board.N * yi] == 0) continue; // 移動できないならスキップ
                 if ((xi == ox) && (yi == oy)) // 相手のいるマスに移動しようとした場合
                 {
                     int xi2 = xi + stack.Item1; // 相手の向こう側のマス
@@ -65,7 +73,7 @@
                     // 一つの条件分岐にまとめてmoveGraphを参照すると配列の長さの外を参照する可能性があるため、二段階に分けて確認(エラー回避)
                     if (!((xi2 < 0) || (xi2 >= Board.N) || (yi2 < 0) || (yi2 >= Board.N))) // 相手の向こう側のマスが盤外でなくかつ↓
                     {
-                        if (moveGraph[Board.xy2to1(xi, yi), Board.xy2to1(xi2, yi2)] == 1) // 相手の向こう側に移動できるなら
+                        if (moveGraph[xi + Board.N * yi, xi2 + Board.N * yi2] == 1) // 相手の向こう側に移動できるなら
                         {
                             flag = true;
                         }
@@ -92,7 +100,7 @@
                             int xi3 = ox + s.Item1; // 回避先のx座標
                             int yi3 = oy + s.Item2; // 回避先のy座標
                             if ((xi3 < 0) || (xi3 >= Board.N) || (yi3 < 0) || (yi3 >= Board.N)) continue; // 盤外ならスキップ
-                            if (moveGraph[Board.xy2to1(ox, oy), Board.xy2to1(xi3, yi3)] == 1) // 横に回避できるなら
+                            if (moveGraph[ox + Board.N * oy, xi3 + Board.N * yi3] == 1) // 横に回避できるなら
                             {
                                 possibleMoves.Add((xi3, yi3)); // 回避先に移動候補を追加
                             }
