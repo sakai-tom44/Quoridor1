@@ -17,9 +17,6 @@ namespace Quoridor1
 
 
 
-        public int cellSize { get { return pictureBox.Width / Board.N; } } // 1マスのサイズ（ピクセル）
-
-        public PictureBox pictureBox; // 盤を描画するPictureBox
 
         public int[,] horizontalWalls = new int[N, N]; // 横方向の壁を格納する配列
         public int[,] verticalWalls = new int[N, N];   // 縦方向の壁を格納する配列
@@ -40,23 +37,16 @@ namespace Quoridor1
 
         public Player[] player = new Player[2]; // プレイヤー配列 player[0]: 黒, player[1]: 白
 
-        public int currentPlayer = 0; // 現在のプレイヤー（0または1）
+        public int currentPlayerNumber = 0; // 現在のプレイヤー（0または1）
+        public Player currentPlayer { get { return player[currentPlayerNumber]; } } // 現在のプレイヤー
+        public Player opponentPlayer { get { return player[1 - currentPlayerNumber]; } } // 相手のプレイヤー
         public bool gameOver = false; // ゲーム終了フラグ
-
-        public Renderer renderer; // 描画処理を担当するレンダラー
-        public WallManager wallManager; // 壁の設置を管理するWallManager
-        public AI ai; // AIプレイヤーを管理するAIクラス
 
         /// <summary>
         /// コンストラクタ。PictureBoxを受け取り、盤を初期化。
         /// </summary>
-        public Board(PictureBox pictureBox)
+        public Board()
         {
-            this.pictureBox = pictureBox; // 渡されたPictureBoxを保持
-            wallManager = new WallManager(this); // 壁マネージャーを初期化
-            renderer = new Renderer(this); // ボードに基づくレンダラーを作成
-            ai = new AI(this); // AIマネージャーを初期化
-
             Reset(); // 盤面を初期化
         }
 
@@ -101,7 +91,7 @@ namespace Quoridor1
         /// </remarks>
         public void RefreshBoard()
         {
-            wallManager.RefreshWallMountable(); // 壁の設置可能位置を更新
+            WallManager.RefreshWallMountable(this); // 壁の設置可能位置を更新
             player[0].RefreshPossibleMoves(this, player[1]); // プレイヤー0の次の移動候補を更新
             player[1].RefreshPossibleMoves(this, player[0]); // プレイヤー1の次の移動候補を更新
         }
@@ -109,18 +99,22 @@ namespace Quoridor1
         /// <summary>
         /// ゲーム終了を確認し、終了していればメッセージを表示。
         /// </summary>
-        public void CheckGameOver()
+        /// <returns>勝者のプレイヤー番号（0または1）、ゲームが続行中なら-1</returns>
+        public int CheckGameOver()
         {
             if (player[0].y == 0) // プレイヤー0が上端に到達
             {
                 gameOver = true;
                 MessageBox.Show("Black wins!");
+                return 0;
             }
             else if (player[1].y == N - 1) // プレイヤー1が下端に到達
             {
                 gameOver = true;
                 MessageBox.Show("White wins!");
+                return 1;
             }
+            return -1; // ゲームは終了していない
         }
 
         /// <summary>
@@ -128,9 +122,9 @@ namespace Quoridor1
         /// </summary>
         public bool TryMovePlayer(int xi, int yi)
         {
-            if (player[currentPlayer].possibleMoves.IndexOf((xi, yi)) >= 0) // 移動可能な位置か確認
+            if (player[currentPlayerNumber].possibleMoves.IndexOf((xi, yi)) >= 0) // 移動可能な位置か確認
             {
-                player[currentPlayer].Move(xi, yi, xy2to1(xi, yi)); // プレイヤーを移動
+                player[currentPlayerNumber].Move(xi, yi, xy2to1(xi, yi)); // プレイヤーを移動
                 return true; // 移動成功
             }
             return false; // 移動失敗
@@ -141,11 +135,9 @@ namespace Quoridor1
         /// </summary>
         public void NextPlayer()
         {
-            currentPlayer = 1 - currentPlayer; // 手番を交代
+            currentPlayerNumber = 1 - currentPlayerNumber; // 手番を交代
 
             RefreshBoard(); // 盤面情報を更新
-            renderer.DrawBoard(); // 盤面を再描画
-            CheckGameOver(); // ゲーム終了を確認
         }
 
         /// <summary>

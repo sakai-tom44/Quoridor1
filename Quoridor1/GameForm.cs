@@ -10,8 +10,10 @@ namespace Quoridor1
     /// </summary>
     public partial class GameForm : Form
     {
-        private Board board; // ゲームボードのインスタンス
+        private Board mainBoard; // ゲームボードのインスタンス
         private bool manualWait = false; // 手動操作待機フラグ
+
+        public int cellSize { get { return pictureBox1.Width / Board.N; } } // 1マスのサイズ（ピクセル）
 
         /// <summary>
         /// コンストラクタ。フォームを初期化。
@@ -39,8 +41,8 @@ namespace Quoridor1
                 {
                     System.Threading.Thread.Sleep(1); // 待機してCPU負荷を軽減
 
-                    if (board.gameOver) continue; // ゲームが終了している場合は何もしない
-                    if (board.player[board.currentPlayer].playerType == PlayerType.Manual) // 現在のプレイヤーが手動操作の場合
+                    if (mainBoard.gameOver) continue; // ゲームが終了している場合は何もしない
+                    if (mainBoard.player[mainBoard.currentPlayerNumber].playerType == PlayerType.Manual) // 現在のプレイヤーが手動操作の場合
                     {
                         manualWait = true; // 手動操作待機フラグを立てる
                         
@@ -51,10 +53,12 @@ namespace Quoridor1
                     }
                     else
                     {
-                        board.ai.MakeMove(board.currentPlayer); // AIの手を実行
+                        AI.MakeMove(mainBoard ,mainBoard.currentPlayerNumber); // AIの手を実行
                     }
 
-                    board.NextPlayer(); // 手番を次のプレイヤーに変更
+                    mainBoard.NextPlayer(); // 手番を次のプレイヤーに変更
+                    Renderer.DrawBoard(mainBoard, pictureBox1); // 初期盤を描画
+                    mainBoard.CheckGameOver(); // ゲーム終了をチェック
                 }
             });
         }
@@ -73,9 +77,9 @@ namespace Quoridor1
         /// </summary>
         private void reset()
         {
-            board = new Board(pictureBox1); // 新しい盤を生成してPictureBoxに関連付け
+            mainBoard = new Board(); // 新しい盤を生成してPictureBoxに関連付け
 
-            board.renderer.DrawBoard(); // 初期盤を描画
+            Renderer.DrawBoard(mainBoard, pictureBox1); // 初期盤を描画
         }
 
         /// <summary>
@@ -93,40 +97,40 @@ namespace Quoridor1
         /// </summary>
         private void mouseShitei(int x, int y)
         {
-            if (board.gameOver) return; // ゲームが終了している場合は無視
+            if (mainBoard.gameOver) return; // ゲームが終了している場合は無視
             if (!manualWait) return; // 手動操作待機中でない場合は無視
-            if (board.player[board.currentPlayer].playerType != PlayerType.Manual) return; // 現在手番のプレイヤーが手動操作でない場合は無視
+            if (mainBoard.player[mainBoard.currentPlayerNumber].playerType != PlayerType.Manual) return; // 現在手番のプレイヤーが手動操作でない場合は無視
 
             bool acted = false; // 行動が成功したかどうかのフラグ
 
             // 縦壁設置の判定（セル境界付近のx座標かどうか）
-            if (x % board.cellSize < Board.lineWidth || x % board.cellSize >= (board.cellSize - Board.lineWidth))
+            if (x % cellSize < Board.lineWidth || x % cellSize >= (cellSize - Board.lineWidth))
             {
-                int xi = (x - 10) / board.cellSize; // マスのx座標を計算
-                int yi = y / board.cellSize;       // マスのy座標を計算
-                if (board.verticalMountable[xi, yi])// 縦壁設置が合法か確認
+                int xi = (x - 10) / cellSize; // マスのx座標を計算
+                int yi = y / cellSize;       // マスのy座標を計算
+                if (mainBoard.verticalMountable[xi, yi])// 縦壁設置が合法か確認
                 {
                     acted = true; // 壁設置が成功した場合
-                    board.wallManager.PlaceWall(xi, yi, WallOrientation.Vertical); // 縦壁設置
+                    WallManager.PlaceWall(mainBoard, xi, yi, WallOrientation.Vertical); // 縦壁設置
                 }
             }
             // 横壁設置の判定（セル境界付近のy座標かどうか）
-            else if (y % board.cellSize < Board.lineWidth || y % board.cellSize >= (board.cellSize - Board.lineWidth))
+            else if (y % cellSize < Board.lineWidth || y % cellSize >= (cellSize - Board.lineWidth))
             {
-                int xi = x / board.cellSize;       // マスのx座標を計算
-                int yi = (y - 10) / board.cellSize; // マスのy座標を計算
-                if (board.horizontalMountable[xi, yi]) // 横壁設置が合法か確認
+                int xi = x / cellSize;       // マスのx座標を計算
+                int yi = (y - 10) / cellSize; // マスのy座標を計算
+                if (mainBoard.horizontalMountable[xi, yi]) // 横壁設置が合法か確認
                 {
                     acted = true; // 壁設置が成功した場合
-                    board.wallManager.PlaceWall(xi, yi, WallOrientation.Horizontal); // 横壁設置
+                    WallManager.PlaceWall(mainBoard, xi, yi, WallOrientation.Horizontal); // 横壁設置
                 }
             }
             // 壁でなければプレイヤーの移動を試みる
             else
             {
-                int xi = x / board.cellSize; // マスのx座標を計算
-                int yi = y / board.cellSize; // マスのy座標を計算
-                acted = board.TryMovePlayer(xi, yi); // プレイヤーを移動
+                int xi = x / cellSize; // マスのx座標を計算
+                int yi = y / cellSize; // マスのy座標を計算
+                acted = mainBoard.TryMovePlayer(xi, yi); // プレイヤーを移動
             }
 
             // 何か行動が成功した場合は手番を終わる

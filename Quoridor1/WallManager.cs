@@ -7,17 +7,10 @@ namespace Quoridor1
 {
     public class WallManager
     {
-        private Board board;// ゲームの盤面データを保持するBoard
-
-        public WallManager(Board board)
-        {
-            this.board = board;                 // Boardインスタンスを保持
-        }
-
         /// <summary>
         /// 壁を設置する。
         /// </summary>
-        public void PlaceWall(int x, int y, WallOrientation wallOrientation)
+        public static void PlaceWall(Board board,int x, int y, WallOrientation wallOrientation)
         {
             //Console.WriteLine("PlaceWall: x={0}, y={1}, orientation={2}", x, y, wallOrientation);
 
@@ -30,7 +23,7 @@ namespace Quoridor1
             else // 横壁の場合
                 board.horizontalWalls[x, y] = board.horizontalWalls[x + 1, y] = 2; // 壁を確定設置
 
-            board.player[board.currentPlayer].placeWallCount++; // 現在のプレイヤーの設置した壁の数を増やす
+            board.player[board.currentPlayerNumber].placeWallCount++; // 現在のプレイヤーの設置した壁の数を増やす
         }
 
         /// <summary>
@@ -159,10 +152,9 @@ namespace Quoridor1
         /// <summary>
         /// 現在の壁を置ける場所を再計算して更新。
         /// </summary>
-        public void RefreshWallMountable()
+        public static void RefreshWallMountable(Board board)
         {
-            DebugPrintMountable();
-            (board.verticalMountable, board.horizontalMountable) = WallMountable(board.moveGraph, board.player[board.currentPlayer].placeWallCount, board.verticalWalls, board.horizontalWalls); // 壁を置けるか確認して更新            
+            (board.verticalMountable, board.horizontalMountable) = WallMountable(board.moveGraph, board.player[board.currentPlayerNumber].placeWallCount, board.verticalWalls, board.horizontalWalls); // 壁を置けるか確認して更新            
         }
 
         /// <summary>

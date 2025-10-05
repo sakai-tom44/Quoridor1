@@ -1,5 +1,6 @@
 ﻿using System.Drawing;
 using System.Numerics;
+using System.Runtime.CompilerServices;
 using System.Windows.Forms;
 
 namespace Quoridor1
@@ -10,27 +11,16 @@ namespace Quoridor1
     /// </summary>
     public class Renderer
     {
-        private PictureBox pictureBox; // 描画先となるPictureBox
-        private Board board;           // ゲームの盤面データを保持するBoard
-        private int cellSize;          // 1マスのピクセルサイズ
-
-        /// <summary>
-        /// Rendererのコンストラクタ。
-        /// Boardの参照を受け取り、描画対象のPictureBoxやセルサイズを設定。
-        /// </summary>
-        public Renderer(Board board)
-        {
-            this.pictureBox = board.pictureBox; // Boardが持つPictureBoxを取得
-            this.board = board;                 // Boardインスタンスを保持
-            this.cellSize = board.cellSize;     // セルサイズを取得
-        }
-
         /// <summary>
         /// 盤面全体を描画する。
         /// グリッド、壁、プレイヤーを順に描画してPictureBoxに表示。
         /// </summary>
-        public void DrawBoard()
+        /// <param name="board">描画対象の盤面</param>
+        /// <param name="pictureBox">描画先のPictureBox</param>
+        public static void DrawBoard(Board board, PictureBox pictureBox)
         {
+            int cellSize = pictureBox.Width / Board.N; // 1マスのサイズ（ピクセル）
+
             // PictureBoxサイズに基づいて新しいBitmapを作成
             Bitmap bmp = new Bitmap(pictureBox.Width, pictureBox.Width);
 
@@ -66,8 +56,8 @@ namespace Quoridor1
                 }
 
                 // プレイヤーを描画（黒：player0, 白：player1）
-                DrawPlayer(g, Brushes.White, 1);
-                DrawPlayer(g, Brushes.Black, 0);
+                DrawPlayer(board, pictureBox ,g, Brushes.White, 1);
+                DrawPlayer(board, pictureBox, g, Brushes.Black, 0);
             }
 
             // 既存の画像を破棄し、新しい描画結果をPictureBoxに設定
@@ -78,11 +68,14 @@ namespace Quoridor1
         /// <summary>
         /// プレイヤーの位置に丸を描画する。
         /// </summary>
+        /// <param name="board">描画対象の盤面</param>
+        /// <param name="pictureBox">描画先のPictureBox</param>
         /// <param name="g">Graphicsオブジェクト</param>
         /// <param name="brush">プレイヤーの色を指定するブラシ</param>
         /// <param name="p">描画対象のプレイヤー</param>
-        private void DrawPlayer(Graphics g, Brush brush, int playerNumber)
+        private static void DrawPlayer(Board board, PictureBox pictureBox, Graphics g, Brush brush, int playerNumber)
         {
+            int cellSize = pictureBox.Width / Board.N; // 1マスのサイズ（ピクセル）
             // プレイヤーの座標をセル単位からピクセル座標に変換
             int x = board.player[playerNumber].x * cellSize + 2; // 左上のx座標（2px余白）
             int y = board.player[playerNumber].y * cellSize + 2; // 左上のy座標（2px余白）
@@ -90,7 +83,7 @@ namespace Quoridor1
             // プレイヤーを楕円（実質的には円）として塗りつぶし描画
             g.FillEllipse(brush, x, y, cellSize - 4, cellSize - 4);
 
-            if (playerNumber != board.currentPlayer) return; // 手番のプレイヤーでなければ次の手を描かない
+            if (playerNumber != board.currentPlayerNumber) return; // 手番のプレイヤーでなければ次の手を描かない
             if (board.player[playerNumber].possibleMoves == null) return; // nextMoveが未設定なら終了
             foreach ((int,int) move in board.player[playerNumber].possibleMoves) // nextMoveに含まれる各移動候補位置に対して
             {
