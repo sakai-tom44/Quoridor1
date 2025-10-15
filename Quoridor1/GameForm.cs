@@ -63,7 +63,7 @@ namespace Quoridor1
                     }
                     else
                     {
-                        AI.MakeMove(mainBoard ,mainBoard.currentPlayerNumber); // AIの手を実行
+                        AI.ComputeNextAction(mainBoard ,mainBoard.currentPlayerNumber); // AIの手を実行
                     }
 
                     mainBoard.NextPlayer(); // 手番を次のプレイヤーに変更

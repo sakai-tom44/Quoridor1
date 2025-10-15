@@ -25,7 +25,7 @@ namespace Quoridor1
                 return; // 壁の設置に失敗
             }
 
-            (int,int) xy1, xy2, xy3, xy4;
+            (int, int) xy1, xy2, xy3, xy4;
             (xy1, xy2, xy3, xy4) = Wall2xy4(x, y, wallOrientation); // 壁で遮断される4つのマスの座標を取得
 
             board.moveGraph = Disconnect(xy1, xy2, xy3, xy4, board.moveGraph); // 壁を置いて道を切断
@@ -46,6 +46,8 @@ namespace Quoridor1
 
             if (placeWallCount >= Board.wallCount) return false; // 既に壁を置き切っているなら不可
 
+
+
             (int, int) xy1, xy2, xy3, xy4;
             (xy1, xy2, xy3, xy4) = Wall2xy4(x, y, wallOrientation); // 壁で遮断される4つのマスの座標を取得
 
@@ -53,22 +55,24 @@ namespace Quoridor1
 
             if (wallOrientation == WallOrientation.Vertical) // 縦壁の場合
             {
+                if (horizontalWalls[x,y] !=0) return false; // 既に横壁があるなら不可
                 if (verticalWalls[x, y] != 0 || verticalWalls[x, y + 1] != 0) return false; // 既に壁があるなら不可
             }
             else // 横壁の場合
             {
+                if (verticalWalls[x, y] != 0) return false; // 既に縦壁があるなら不可
                 if (horizontalWalls[x, y] != 0 || horizontalWalls[x + 1, y] != 0) return false; // 既に壁があるなら不可
             }
 
             // 壁を置いても道が繋がっているか確認
             return (CheckConnected(xy1, xy2, xy3, xy4, moveGraph)); // 道が繋がっているなら
-            
+
         }
 
         /// <summary>
         /// x,y座標と壁の向きから、壁で遮断される4つのマスの座標を返す。
         /// </summary>
-        public ((int,int), (int, int), (int, int), (int, int)) Wall2xy4(int x, int y, WallOrientation wallOrientation)
+        public ((int, int), (int, int), (int, int), (int, int)) Wall2xy4(int x, int y, WallOrientation wallOrientation)
         {
             if (wallOrientation == WallOrientation.Vertical) // 縦壁の場合
                 return ((x, y), (x + 1, y), (x, y + 1), (x + 1, y + 1)); // 縦壁で遮断される4つのマスの座標
@@ -102,7 +106,7 @@ namespace Quoridor1
         /// <summary>
         /// 壁を置いた後も道が繋がっているかチェックする。
         /// </summary>
-        private bool CheckConnected((int,int) xy1, (int, int) xy2, (int, int) xy3, (int, int) xy4, int[,] moveGraph)
+        private bool CheckConnected((int, int) xy1, (int, int) xy2, (int, int) xy3, (int, int) xy4, int[,] moveGraph)
         {
             int k1 = board.xy2to1(xy1.Item1, xy1.Item2); //　壁の座標から1次元インデックスに変換
             int k2 = board.xy2to1(xy2.Item1, xy2.Item2);
@@ -165,7 +169,7 @@ namespace Quoridor1
         /// </summary>
         public void RefreshWallMountable()
         {
-            (board.verticalMountable, board.horizontalMountable) = WallMountable(board.moveGraph, board.player[board.currentPlayerNumber].placeWallCount, board.verticalWalls, board.horizontalWalls); // 壁を置けるか確認して更新            
+            (board.verticalMountable, board.horizontalMountable) = WallMountable(); // 壁を置けるか確認して更新            
         }
 
         /// <summary>
@@ -176,15 +180,29 @@ namespace Quoridor1
         /// <param name="verticalWalls">縦壁の配置</param>
         /// <param name="horizontalWalls">横壁の配置</param>
         /// <returns>縦壁と横壁の設置可能位置のbool配列</returns>
-        public (bool[,], bool[,]) WallMountable(int[,] moveGraph, int placeWallCount, int[,] verticalWalls, int[,] horizontalWalls)
+        public (bool[,], bool[,]) WallMountable()
         {
             bool[,] horizontal = new bool[Board.N, Board.N];
             bool[,] vertical = new bool[Board.N, Board.N];
             for (int x = 0; x < Board.N - 1; x++) // 端には置けないので-1まで
                 for (int y = 0; y < Board.N - 1; y++) // 端には置けないので-1まで
                 {
-                    horizontal[x, y] = CheckWall(x, y, WallOrientation.Horizontal, moveGraph, placeWallCount, verticalWalls, horizontalWalls) ? true : false; // 横壁を置けるか確認
-                    vertical[x, y] = CheckWall(x, y, WallOrientation.Vertical, moveGraph, placeWallCount, verticalWalls, horizontalWalls) ? true : false; // 縦壁を置けるか確認
+                    if (board.horizontalMountable[x, y])
+                    {
+                        horizontal[x, y] = CheckWall(x, y, WallOrientation.Horizontal, board.moveGraph, board.player[board.currentPlayerNumber].placeWallCount, board.verticalWalls, board.horizontalWalls) ? true : false; // 横壁を置けるか確認
+                    }
+                    else
+                    {
+                        horizontal[x, y] = false;
+                    }
+                    if (board.verticalMountable[x, y])
+                    {
+                        vertical[x, y] = CheckWall(x, y, WallOrientation.Vertical, board.moveGraph, board.player[board.currentPlayerNumber].placeWallCount, board.verticalWalls, board.horizontalWalls) ? true : false; // 縦壁を置けるか確認
+                    }
+                    else
+                    {
+                        vertical[x, y] = false;
+                    }
                 }
             return (vertical, horizontal);
         }
@@ -192,5 +210,5 @@ namespace Quoridor1
     /// <summary>
     /// 壁の方向を表す列挙型
     /// </summary>
-    public enum WallOrientation { Horizontal, Vertical}
+    public enum WallOrientation { Horizontal, Vertical }
 }

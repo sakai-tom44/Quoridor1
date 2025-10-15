@@ -14,14 +14,14 @@ namespace Quoridor1
         /// <summary>
         /// 次の一手を計算し、AIプレイヤーが移動。
         /// </summary>
-        public static bool MakeMove(Board board, int playerNumber)
+        public static bool ComputeNextAction(Board board, int playerNumber)
         {
             if (board.gameOver) return false; // ゲーム終了後は動かない
 
             if (board.player[board.currentPlayerNumber].playerType == PlayerType.Random)
-                return RandomMove(board);
+                return RandomAction(board);
             if (board.player[board.currentPlayerNumber].playerType == PlayerType.AI)
-                return MinimaxMove(board, 1); // ミニマックス法を使用
+                return EvaluateBestAction(board); // ミニマックス法を使用
 
 
             return false; // 該当する操作方法がない場合
@@ -30,7 +30,7 @@ namespace Quoridor1
         /// <summary>
         /// ランダムに移動または壁の設置を行う。
         /// </summary>
-        private static bool RandomMove(Board board)
+        private static bool RandomAction(Board board)
         {
             // 現在のプレイヤーと相手プレイヤーを取得
             Player currentPlayer = board.player[board.currentPlayerNumber];
@@ -95,108 +95,45 @@ namespace Quoridor1
         }
 
         /// <summary>
-        /// ミニマックス法を使用して最良の移動を決定し、実行。
+        /// 評価関数を使用して一手先の最良の行動を決定し、実行。
         /// </summary>
         /// <param name="playerNumber">AIのプレイヤー番号 (0または1)</param>
-        private static bool MinimaxMove(Board board, int depth)
+        private static bool EvaluateBestAction(Board board)
         {
-            /*
+
             int bestMoveScore = int.MinValue; // 最良の移動スコアを初期化
             (int, int)? bestMove = null; // 最良の移動を初期化
             int bestWallScore = int.MinValue; // 最良の壁設置スコアを初期化
             (int, int, WallOrientation)? bestWall = null; // 最良の壁設置を初期化
-            */
-            /*
-            Queue<(int, Board)>dummyBoard = new Queue<(int, Board)>() ; // 評価関数用のダミーボードキュー
-            dummyBoard.Enqueue((0, new Board(board))); // 現在の盤面をキューに追加
 
-            while (dummyBoard.Count > 0) // キューが空になるまで探索
+            foreach (var move in board.currentPlayer.possibleMoves) // 各移動候補に対して
             {
-                var (d, b) = dummyBoard.Dequeue(); // キューから先頭を取り出し
-                if (d >= depth) continue; // 深さ制限
-                // 各プレイヤーの可能な移動を列挙
-                foreach (var move in b.player[b.currentPlayerNumber].possibleMoves) // 各移動候補に対して
-                {
-                    Board newBoard = new Board(b); // 盤面をコピー
-                    newBoard.player[newBoard.currentPlayerNumber].x = move.Item1; // 移動を適用
-                    newBoard.player[newBoard.currentPlayerNumber].y = move.Item2;
-                    newBoard.NextPlayer(); // プレイヤー交代
-                    dummyBoard.Enqueue((d + 1, newBoard)); // 新しい盤面をキューに追加
-                }
-                foreach (var wall in b.verticalMountableList) // 各設置可能な縦壁に対して
-                {
-                    Board newBoard = new Board(b); // 盤面をコピー
-                    WallManager.PlaceWall(newBoard, wall.Item1, wall.Item2, WallOrientation.Vertical); // 壁設置を適用
-                    newBoard.NextPlayer(); // プレイヤー交代
-                    dummyBoard.Enqueue((d + 1, newBoard)); // 新しい盤面をキューに追加
-                }
-                foreach (var wall in b.horizontalMountableList) // 各設置可能な横壁に対して
-                {
-                    Board newBoard = new Board(b); // 盤面をコピー
-                    WallManager.PlaceWall(newBoard, wall.Item1, wall.Item2, WallOrientation.Horizontal); // 壁設置を適用
-                    newBoard.NextPlayer(); // プレイヤー交代
-                    dummyBoard.Enqueue((d + 1, newBoard)); // 新しい盤面をキューに追加
-                }
+                Board newBoard = new Board(board); // 盤面をコピー ]
+                newBoard.TryMovePlayer(move.Item1, move.Item2); // 移動を適用 // 評価関数を使用して盤面を評価
+                int score = newBoard.EvaluateBoardState(board.currentPlayerNumber); // 最良のスコアと移動を更新
+                if (score > bestMoveScore) { bestMoveScore = score; bestMove = move; }
             }
-            */
-            // --- 移動候補を並列評価 ---
-            var moveResults = board.currentPlayer.possibleMoves // 移動候補リスト
-                .AsParallel() // 並列LINQで評価
-                .Select(move =>
-                {
-                    Board newBoard = new Board(board); // スレッドごとに盤面をコピー
-                    newBoard.TryMovePlayer(move.Item1, move.Item2); // 移動適用
-                    int score = newBoard.EvaluateBoardState(board.currentPlayerNumber);
-                    return (Score: score, Move: move);
-                })
-                .ToList();
-
-            // --- 縦壁候補を並列評価 ---
-            var verticalResults = board.verticalMountableList // 設置可能な縦壁リスト
-                .AsParallel()
-                .Select(wall =>
-                {
-                    Board newBoard = new Board(board);
-                    newBoard.wallManager.PlaceWall(wall.Item1, wall.Item2, WallOrientation.Vertical);
-                    int score = newBoard.EvaluateBoardState(board.currentPlayerNumber);
-                    return (Score: score, Wall: (wall.Item1, wall.Item2, WallOrientation.Vertical));
-                })
-                .ToList();
-
-            // --- 横壁候補を並列評価 ---
-            var horizontalResults = board.horizontalMountableList // 設置可能な横壁リスト
-                .AsParallel()
-                .Select(wall =>
-                {
-                    Board newBoard = new Board(board);
-                    newBoard.wallManager.PlaceWall(wall.Item1, wall.Item2, WallOrientation.Horizontal);
-                    int score = newBoard.EvaluateBoardState(board.currentPlayerNumber);
-                    return (Score: score, Wall: (wall.Item1, wall.Item2, WallOrientation.Horizontal));
-                })
-                .ToList();
-
-            // --- 各カテゴリで最良の候補を選ぶ ---
-            var bestMove = moveResults.OrderByDescending(r => r.Score).FirstOrDefault();
-            var bestVertical = verticalResults.OrderByDescending(r => r.Score).FirstOrDefault();
-            var bestHorizontal = horizontalResults.OrderByDescending(r => r.Score).FirstOrDefault();
-
-            // --- 壁候補の中で最良のものを決定 ---
-            var bestWallCandidate = bestVertical.Score > bestHorizontal.Score ? bestVertical : bestHorizontal;
-
-            // --- 移動と壁を比較し、最良の行動を決定 ---
-            if (bestWallCandidate.Score > bestMove.Score)
+            foreach (var wall in board.verticalMountableList) // 各設置可能な縦壁に対して
             {
-                // 最良の壁設置を実行
-                var w = bestWallCandidate.Wall;
-                board.wallManager.PlaceWall(w.Item1, w.Item2, w.Item3);
-                return true; // 壁の設置が成功したことを示す
+                Board newBoard = new Board(board); // 盤面をコピー
+                newBoard.wallManager.PlaceWall(wall.Item1, wall.Item2, WallOrientation.Vertical); // 壁設置を適用
+                int score = newBoard.EvaluateBoardState(board.currentPlayerNumber); // 最良のスコアと壁設置を更新
+                if (score > bestWallScore) { bestWallScore = score; bestWall = (wall.Item1, wall.Item2, WallOrientation.Vertical); }
             }
-            else
+            foreach (var wall in board.horizontalMountableList) //各設置可能な横壁に対して
             {
-                // 最良の移動を実行
-                board.player[board.currentPlayerNumber].x = bestMove.Move.Item1;
-                board.player[board.currentPlayerNumber].y = bestMove.Move.Item2;
-                return true; // 移動が成功したことを示す
+                Board newBoard = new Board(board); // 盤面をコピー
+                newBoard.wallManager.PlaceWall( wall.Item1, wall.Item2, WallOrientation.Horizontal); // 壁設置を適用
+                int score = newBoard.EvaluateBoardState(board.currentPlayerNumber); // 最良のスコアと壁設置を更新
+                if (score > bestWallScore) { bestWallScore = score; bestWall = (wall.Item1, wall.Item2, WallOrientation.Horizontal); }
+            }
+            if (bestWallScore > bestMoveScore && bestWall.HasValue)
+            { // 最良の壁設置を実行
+                board.wallManager.PlaceWall(bestWall.Value.Item1, bestWall.Value.Item2, bestWall.Value.Item3); return true; // 壁の設置が成功したことを示す
+            }
+            else if (bestMove.HasValue)
+            { // 最良の移動を実行
+                board.player[board.currentPlayerNumber].x = bestMove.Value.Item1; board.player[board.currentPlayerNumber].y = bestMove.Value.Item2; return true; // 移動が成功したことを示す
             }
             return false; // 移動できるマスがない場合
         }
@@ -209,7 +146,8 @@ namespace Quoridor1
         public int c = 5; //26
 
         public Random rand = new Random();
-        public void RandomParam() { 
+        public void RandomParam()
+        {
             a = rand.Next(1, 100);
             b = rand.Next(1, 100);
             c = rand.Next(1, 100);
