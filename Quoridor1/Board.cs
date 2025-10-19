@@ -15,24 +15,11 @@ namespace Quoridor1
         public const int N = 9; // 盤面のサイズ（9x9）
         public const int lineWidth = 8; // 壁の太さ（ピクセル）
         public const int wallCount = 10; // 各プレイヤーの壁の数
-        public const bool autoReset = true; // ゲーム終了後に自動でリセットするか
 
 
 
         public int[,] horizontalWalls = new int[N, N]; // 横方向の壁を格納する配列
         public int[,] verticalWalls = new int[N, N];   // 縦方向の壁を格納する配列
-        public bool[,] horizontalMountable = new bool[N, N]; // 横壁設置可能位置
-        public List<(int,int)> horizontalMountableList { get{ return bool2xyList(horizontalMountable);} } // 横壁設置可能位置のリスト
-        public bool[,] verticalMountable = new bool[N, N];   // 縦壁設置可能位置
-        public List<(int, int)> verticalMountableList { get { return bool2xyList(verticalMountable); } } // 縦壁設置可能位置のリスト
-        private List<(int, int)> bool2xyList(bool[,] b) // bool配列から(x,y)リストを作成
-        {
-            List<(int, int)> list = new List<(int, int)>();
-            for (int x = 0; x < N - 1; x++)
-                for (int y = 0; y < N - 1; y++)
-                    if (b[x, y]) list.Add((x, y));
-            return list;
-        }
 
         public int[,] moveGraph; // マス間の移動可能性を示す隣接行列
 
@@ -78,19 +65,22 @@ namespace Quoridor1
         /// </summary>
         private void Reset()
         {
-            horizontalWalls = new int[N, N]; // 横壁をクリア
-            verticalWalls = new int[N, N];   // 縦壁をクリア
-            for (int x = 0; x < N; x++)
-                for (int y = 0; y < N; y++)
-                    horizontalMountable[x,y] = true; // 各要素をtrueに初期化
-            for (int x = 0; x < N; x++)
-                for (int y = 0; y < N; y++)
-                    verticalMountable[x,y] = true; // 各要素をtrueに初期化
-
             moveGraph = new int[N * N, N * N]; // 移動グラフを初期化
 
-            player[0] = new Player(N / 2, N - 1, PlayerType.AI); // プレイヤー0を下端中央に配置
-            player[1] = new Player(N / 2, 0, PlayerType.Random);     // プレイヤー1を上端中央に配置
+            player[0] = new Player(N / 2, N - 1, PlayerType.Manual); // プレイヤー0を下端中央に配置
+            player[1] = new Player(N / 2, 0, PlayerType.Minmax);     // プレイヤー1を上端中央に配置
+
+            foreach (var p in player)
+            {
+                p.horizontalMountable = new bool[N, N]; // 各プレイヤーの横壁設置可能位置を初期化
+                p.verticalMountable = new bool[N, N];   // 各プレイヤーの縦壁設置可能位置を初期化
+                for (int x = 0; x < N; x++)
+                    for (int y = 0; y < N; y++)
+                        p.horizontalMountable[x, y] = true; // 各要素をtrueに初期化
+                for (int x = 0; x < N; x++)
+                    for (int y = 0; y < N; y++)
+                        p.verticalMountable[x, y] = true; // 各要素をtrueに初期化
+            }
 
             // 各マス間の隣接関係を構築
             for (int x = 0; x < N; x++)
@@ -129,27 +119,13 @@ namespace Quoridor1
         }
 
         /// <summary>
-        /// ゲーム終了を確認し、終了していればメッセージを表示。
+        /// ゲーム終了を確認し、終了していれば勝者を返す。
         /// </summary>
         /// <returns>勝者のプレイヤー番号（0または1）、ゲームが続行中なら-1</returns>
         public int CheckGameOver()
         {
-            if (player[0].y == 0) // プレイヤー0が上端に到達
-            {
-                gameOver = true;
-                if (!autoReset) MessageBox.Show("Black wins!");
-                Console.WriteLine($"win a:{e[0].a} b:{e[0].b} c:{e[0].c}");
-                e[1].RandomParam(); // 敗者の評価関数パラメータをランダムに変更
-                return 0;
-            }
-            else if (player[1].y == N - 1) // プレイヤー1が下端に到達
-            {
-                gameOver = true;
-                if (!autoReset) MessageBox.Show("White wins!");
-                Console.WriteLine($"win a:{e[1].a} b:{e[1].b} c:{e[1].c}");
-                e[0].RandomParam(); // 敗者の評価関数パラメータをランダムに変更
-                return 1;
-            }
+            if (player[0].y == 0) return 0; // プレイヤー0が上端に到達
+            else if (player[1].y == N - 1) return 1; // プレイヤー1が下端に到達
             return -1; // ゲームは終了していない
         }
 

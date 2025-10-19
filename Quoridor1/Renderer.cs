@@ -23,11 +23,13 @@ namespace Quoridor1
 
             // PictureBoxサイズに基づいて新しいBitmapを作成
             Bitmap bmp = new Bitmap(pictureBox.Width, pictureBox.Width);
+            Pen[] wallPens = new Pen[2]; // 壁用の青い太線と赤い太線
 
             // Graphicsオブジェクトを取得し、ペンやブラシを用意
             using (Graphics g = Graphics.FromImage(bmp))
             using (Pen gridPen = new Pen(Color.DarkGray, 2))      // グリッド用の灰色の細線
-            using (Pen wallPen = new Pen(Color.Blue, Board.lineWidth)) // 壁用の青い太線
+            using (wallPens[0] = new Pen(Color.Blue, Board.lineWidth)) // 壁用の青い太線
+            using (wallPens[1] = new Pen(Color.Red, Board.lineWidth))  // 壁用の赤い太線
             {
                 // グリッド線の描画（縦横のラインを描く）
                 for (int i = 0; i <= Board.N; i++)
@@ -43,20 +45,20 @@ namespace Quoridor1
                     {
                         // 横壁がある場合は青線を描く
                         if (board.horizontalWalls[xi, yi] > 0)
-                            g.DrawLine(wallPen,
+                            g.DrawLine(wallPens[board.horizontalWalls[xi, yi] - 1],
                                 xi * cellSize, (yi + 1) * cellSize,
-                                (xi + 1) * cellSize, (yi + 1) * cellSize);
+                                (xi + 2) * cellSize, (yi + 1) * cellSize);
 
                         // 縦壁がある場合は青線を描く
                         if (board.verticalWalls[xi, yi] > 0)
-                            g.DrawLine(wallPen,
+                            g.DrawLine(wallPens[board.verticalWalls[xi, yi] - 1],
                                 (xi + 1) * cellSize, yi * cellSize,
-                                (xi + 1) * cellSize, (yi + 1) * cellSize);
+                                (xi + 1) * cellSize, (yi + 2) * cellSize);
                     }
                 }
 
                 // プレイヤーを描画（黒：player0, 白：player1）
-                DrawPlayer(board, pictureBox ,g, Brushes.White, 1);
+                DrawPlayer(board, pictureBox, g, Brushes.White, 1);
                 DrawPlayer(board, pictureBox, g, Brushes.Black, 0);
             }
 

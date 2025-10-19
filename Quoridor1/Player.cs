@@ -8,6 +8,19 @@
         public PlayerType playerType; // プレイヤーの操作方法の種類
         public int placeWallCount = 0; // 置いた壁の数
 
+        public bool[,] horizontalMountable = new bool[Board.N, Board.N]; // 横壁設置可能位置
+        public List<(int, int)> horizontalMountableList { get { return bool2xyList(horizontalMountable); } } // 横壁設置可能位置のリスト
+        public bool[,] verticalMountable = new bool[Board.N, Board.N];   // 縦壁設置可能位置
+        public List<(int, int)> verticalMountableList { get { return bool2xyList(verticalMountable); } } // 縦壁設置可能位置のリスト
+        private List<(int, int)> bool2xyList(bool[,] b) // bool配列から(x,y)リストを作成
+        {
+            List<(int, int)> list = new List<(int, int)>();
+            for (int x = 0; x < Board.N - 1; x++)
+                for (int y = 0; y < Board.N - 1; y++)
+                    if (b[x, y]) list.Add((x, y));
+            return list;
+        }
+
         public Player(int startX, int startY, PlayerType playerType)
         {
             x = startX;
@@ -119,6 +132,6 @@
     /// <summary>
     /// プレイヤーの操作方法の種類
     /// </summary>
-    public enum PlayerType { Manual, Random , AI}
+    public enum PlayerType { Manual, Random , Evaluate, Minmax}
 }
 

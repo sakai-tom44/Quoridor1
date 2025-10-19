@@ -31,8 +31,8 @@ namespace Quoridor1
                 string str2 = "";
                 for (int x = 0; x < Board.N - 1; x++)
                 {
-                    str1 += board.horizontalMountable[x, y] ? "□" : "■";
-                    str2 += board.verticalMountable[x, y] ? "□" : "■";
+                    str1 += board.currentPlayer.horizontalMountable[x, y] ? "□" : "■";
+                    str2 += board.currentPlayer.verticalMountable[x, y] ? "□" : "■";
                 }
                 Console.WriteLine(str1 + "|" + str2);
             }

@@ -12,6 +12,7 @@ namespace Quoridor1
     {
         private Board mainBoard; // ゲームボードのインスタンス
         private bool manualWait = false; // 手動操作待機フラグ
+        public const bool AUTO_RESET = true; // ゲーム終了後に自動でリセットするか
 
         public int cellSize { get { return pictureBox1.Width / Board.N; } } // 1マスのサイズ（ピクセル）
 
@@ -41,11 +42,11 @@ namespace Quoridor1
             {
                 while (true) // 無限ループ
                 {
-                    System.Threading.Thread.Sleep(1); // 待機してCPU負荷を軽減
+                    System.Threading.Thread.Sleep(100); // 待機してCPU負荷を軽減
 
                     if (mainBoard.gameOver)
                     {
-                        if (Board.autoReset) // 自動リセットが有効なら
+                        if (AUTO_RESET) // 自動リセットが有効なら
                         {
                             System.Threading.Thread.Sleep(500); // 0.5秒待機
                             reset(); // ゲームをリセット
@@ -68,7 +69,22 @@ namespace Quoridor1
 
                     mainBoard.NextPlayer(); // 手番を次のプレイヤーに変更
                     Renderer.DrawBoard(mainBoard, pictureBox1); // 初期盤を描画
-                    mainBoard.CheckGameOver(); // ゲーム終了をチェック
+
+                    int win = mainBoard.CheckGameOver(); // ゲーム終了をチェック
+                    if (win == 0) // プレイヤー0が上端に到達
+                    {
+                        mainBoard.gameOver = true;
+                        if (!AUTO_RESET) MessageBox.Show("Black wins!");
+                        //Console.WriteLine($"win a:{mainBoard.e[0].a} b:{mainBoard.e[0].b} c:{mainBoard.e[0].c}");
+                        //mainBoard.e[1].RandomParam(); // 敗者の評価関数パラメータをランダムに変更
+                    }
+                    else if (win == 1) // プレイヤー1が下端に到達
+                    {
+                        mainBoard.gameOver = true;
+                        if (!AUTO_RESET) MessageBox.Show("White wins!");
+                        //Console.WriteLine($"win a:{mainBoard.e[1].a} b:{mainBoard.e[1].b} c:{mainBoard.e[1].c}");
+                        //mainBoard.e[0].RandomParam(); // 敗者の評価関数パラメータをランダムに変更
+                    }
                 }
             });
         }
@@ -118,7 +134,7 @@ namespace Quoridor1
             {
                 int xi = (x - 10) / cellSize; // マスのx座標を計算
                 int yi = y / cellSize;       // マスのy座標を計算
-                if (mainBoard.verticalMountable[xi, yi])// 縦壁設置が合法か確認
+                if (mainBoard.currentPlayer.verticalMountable[xi, yi])// 縦壁設置が合法か確認
                 {
                     acted = true; // 壁設置が成功した場合
                     mainBoard.wallManager.PlaceWall(xi, yi, WallOrientation.Vertical); // 縦壁設置
@@ -129,7 +145,7 @@ namespace Quoridor1
             {
                 int xi = x / cellSize;       // マスのx座標を計算
                 int yi = (y - 10) / cellSize; // マスのy座標を計算
-                if (mainBoard.horizontalMountable[xi, yi]) // 横壁設置が合法か確認
+                if (mainBoard.currentPlayer.horizontalMountable[xi, yi]) // 横壁設置が合法か確認
                 {
                     acted = true; // 壁設置が成功した場合
                     mainBoard.wallManager.PlaceWall(xi, yi, WallOrientation.Horizontal); // 横壁設置
