@@ -14,7 +14,7 @@ namespace Quoridor1
         /// 先読みの最大深さ
         /// </summary>
         private const int MAX_DEPTH = 5;
-        public const int SIMULATION_PER_ACTION = 100; // 各候補手に対するシミュレーション回数
+        public const int SIMULATION_PER_ACTION = 200; // 各候補手に対するシミュレーション回数
 
         /// <summary>
         /// 次の一手を計算し、AIプレイヤーが移動。
@@ -70,7 +70,7 @@ namespace Quoridor1
             {
                 Board newBoard = new Board(board); // 盤面をコピー
                 ApplyAction(newBoard, action); // 行動を適用
-                int score = newBoard.EvaluateBoardState(board.currentPlayerNumber); // 盤面を評価
+                int score = newBoard.EvaluateBoardByHeuristic(board.currentPlayerNumber); // 盤面を評価
                 if (score > bestScore)
                 {
                     bestScore = score;
@@ -111,38 +111,14 @@ namespace Quoridor1
             // 必要なら Parallel.For 等で並列化（ランダム種の競合に注意）。
             foreach (var act in actions)
             {
-                int wins = 0;
+                // 盤面をコピーしてプレイアウトを行う（Board(Board) コピーコンストラクタを想定）
+                Board sim = new Board(board);
 
-                // 並列ループでプレイアウトを実行
-                Parallel.For(0, SIMULATION_PER_ACTION, () =>
-                {
-                    // 各スレッドで個別の勝利数カウンタを持つ
-                    return 0;
-                },
-                (i, loopState, localWins) =>
-                {
-                    // 盤面をコピーしてプレイアウトを行う（Board(Board) コピーコンストラクタを想定）
-                    Board sim = new Board(board);
+                // 実際の手を適用（コピーに）
+                ApplyAction(sim, act);
+                
+                double winRate = EvaluateBoardByMonteCarlo(sim, board.currentPlayerNumber);
 
-                    // 実際の手を適用（コピーに）
-                    ApplyAction(sim, act);
-
-                    // 次プレイヤーへ移行（ApplyActionは手を適用しただけなのでターン切替が必要なら行う）
-                    sim.NextPlayer();
-
-                    // ランダムプレイアウトの実行（乱数はスレッドローカルで安全）
-                    int winner = PlayOutRandom(sim);
-
-                    // プレイアウトの勝者が起点プレイヤーなら勝利と数える
-                    if (winner == player) localWins++;
-
-                    // スレッドローカル変数として返す
-                    return localWins;
-                },
-                localWins => Interlocked.Add(ref wins, localWins) // 各スレッドの結果を合計
-                );
-
-                double winRate = (double)wins / SIMULATION_PER_ACTION;
                 Console.WriteLine($"Action: {(act.IsMove ? $"Move to ({act.X},{act.Y})" : $"Place {(act.Orientation == WallOrientation.Vertical ? "Vertical" : "Horizontal")} Wall at ({act.X},{act.Y})")}, Win Rate: {winRate:P2}");
 
                 // 最良手を更新
@@ -161,6 +137,43 @@ namespace Quoridor1
             }
 
             return false;
+        }
+
+        /// <summary>
+        /// 現在の盤面を Monte Carlo 法で評価し、
+        /// 現在プレイヤーの勝率（0.0～1.0）を返す。
+        /// </summary>
+        /// <param name="board">現在の盤面</param>
+        /// <returns>勝率（0.0～1.0）</returns>
+        private static double EvaluateBoardByMonteCarlo(Board board, int aiPlayer)
+        {
+            int wins = 0;
+
+            // ------------------------------------------
+            // 並列プレイアウト実行
+            // ------------------------------------------
+            Parallel.For(0, SIMULATION_PER_ACTION, () => 0, // スレッドごとのローカルカウント
+            (i, loopState, localWins) =>
+            {
+                // 盤面をコピー
+                Board sim = new Board(board);
+
+                // プレイアウト実行
+                int winner = PlayOutRandom(sim);
+
+                // 勝者が自分なら勝利をカウント
+                if (winner == aiPlayer)
+                    localWins++;
+
+                return localWins;
+            },
+            localWins => Interlocked.Add(ref wins, localWins) // 合計に反映
+            );
+
+            // ------------------------------------------
+            // 勝率（0.0～1.0）の算出
+            // ------------------------------------------
+            return (double)wins / SIMULATION_PER_ACTION;
         }
 
         /// <summary>
@@ -267,7 +280,7 @@ namespace Quoridor1
             if (depth >= MAX_DEPTH)
             {
                 //Console.WriteLine("Evaluate at depth " + depth);
-                return board.EvaluateBoardState(aiPlayer);
+                return board.EvaluateBoardByHeuristic(aiPlayer);
             }
 
             // -------------------------------

@@ -156,7 +156,7 @@ namespace Quoridor1
         /// 盤面の評価関数。
         /// </summary>
         /// AIの戦略に応じて調整可能。
-        public int EvaluateBoardState(int playerNumber)
+        public int EvaluateBoardByHeuristic(int playerNumber)
         {
             int p = playerNumber;
 
