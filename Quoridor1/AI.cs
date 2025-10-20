@@ -13,7 +13,7 @@ namespace Quoridor1
         /// <summary>
         /// 先読みの最大深さ
         /// </summary>
-        private const int MAX_DEPTH = 3;
+        private const int MAX_DEPTH = 5;
 
         /// <summary>
         /// 次の一手を計算し、AIプレイヤーが移動。
@@ -165,7 +165,7 @@ namespace Quoridor1
                 Board newBoard = new Board(board);
                 newBoard.TryMovePlayer(move.Item1, move.Item2);
 
-                int score = Minimax(newBoard, 1, false, currentPlayer);
+                int score = Minimax(newBoard, 1, false, currentPlayer, int.MinValue, int.MaxValue);
 
                 if (score > bestScore)
                 {
@@ -183,7 +183,7 @@ namespace Quoridor1
                 Board newBoard = new Board(board);
                 newBoard.wallManager.PlaceWall(wall.Item1, wall.Item2, WallOrientation.Vertical);
 
-                int score = Minimax(newBoard, 1, false, currentPlayer);
+                int score = Minimax(newBoard, 1, false, currentPlayer, int.MinValue, int.MaxValue);
 
                 if (score > bestScore)
                 {
@@ -197,7 +197,7 @@ namespace Quoridor1
                 Board newBoard = new Board(board);
                 newBoard.wallManager.PlaceWall(wall.Item1, wall.Item2, WallOrientation.Horizontal);
 
-                int score = Minimax(newBoard, 1, false, currentPlayer);
+                int score = Minimax(newBoard, 1, false, currentPlayer, int.MinValue, int.MaxValue);
 
                 if (score > bestScore)
                 {
@@ -231,8 +231,10 @@ namespace Quoridor1
         /// <param name="depth">現在の深さ</param>
         /// <param name="isMaximizing">最大化ノードか最小化ノードか</param>
         /// <param name="aiPlayer">AIプレイヤー番号（0または1）</param>
+        /// <param name="alpha">アルファ値（最大化ノード用）</param>
+        /// <param name="beta">ベータ値（最小化ノード用）</param>
         /// <returns>評価スコア</returns>
-        private static int Minimax(Board board, int depth, bool isMaximizing, int aiPlayer)
+        private static int Minimax(Board board, int depth, bool isMaximizing, int aiPlayer, int alpha, int beta)
         {
             // ------------------------------------------
             // 勝利チェック（CheckGameOverを使用）
@@ -250,6 +252,7 @@ namespace Quoridor1
             // -------------------------------
             if (depth >= MAX_DEPTH)
             {
+                //Console.WriteLine("Evaluate at depth " + depth);
                 return board.EvaluateBoardState(aiPlayer);
             }
 
@@ -271,12 +274,24 @@ namespace Quoridor1
                 Board newBoard = new Board(board);
                 newBoard.TryMovePlayer(move.Item1, move.Item2);
 
-                int score = Minimax(newBoard, depth + 1, !isMaximizing, aiPlayer);
+                int score = Minimax(newBoard, depth + 1, !isMaximizing, aiPlayer, alpha, beta);
 
                 if (isMaximizing)
+                {
                     bestScore = Math.Max(bestScore, score);
+                    alpha = Math.Max(alpha, bestScore);
+                }
                 else
+                {
                     bestScore = Math.Min(bestScore, score);
+                    beta = Math.Min(beta, bestScore);
+                }
+
+                if (beta <= alpha)
+                {
+                    //Console.WriteLine($"Alpha-Beta Pruning at depth {depth}   /   bata:{beta} <= alpha{alpha}");
+                    break; // アルファベータカット
+                }
             }
 
             // -------------------------------
@@ -287,12 +302,24 @@ namespace Quoridor1
                 Board newBoard = new Board(board);
                 newBoard.wallManager.PlaceWall(wall.Item1, wall.Item2, WallOrientation.Vertical);
 
-                int score = Minimax(newBoard, depth + 1, !isMaximizing, aiPlayer);
+                int score = Minimax(newBoard, depth + 1, !isMaximizing, aiPlayer, alpha, beta);
 
                 if (isMaximizing)
+                {
                     bestScore = Math.Max(bestScore, score);
+                    alpha = Math.Max(alpha, bestScore);
+                }
                 else
+                {
                     bestScore = Math.Min(bestScore, score);
+                    beta = Math.Min(beta, bestScore);
+                }
+
+                if (beta <= alpha)
+                {
+                    //Console.WriteLine($"Alpha-Beta Pruning at depth {depth}   /   bata:{beta} <= alpha{alpha}");
+                    break; // アルファベータカット
+                }
             }
 
             // -------------------------------
@@ -303,16 +330,30 @@ namespace Quoridor1
                 Board newBoard = new Board(board);
                 newBoard.wallManager.PlaceWall(wall.Item1, wall.Item2, WallOrientation.Horizontal);
 
-                int score = Minimax(newBoard, depth + 1, !isMaximizing, aiPlayer);
+                int score = Minimax(newBoard, depth + 1, !isMaximizing, aiPlayer, alpha, beta);
 
                 if (isMaximizing)
+                {
                     bestScore = Math.Max(bestScore, score);
+                    alpha = Math.Max(alpha, bestScore);
+                }
                 else
+                {
                     bestScore = Math.Min(bestScore, score);
+                    beta = Math.Min(beta, bestScore);
+                }
+
+                if (beta <= alpha)
+                {
+                    //Console.WriteLine($"Alpha-Beta Pruning at depth {depth}   /   bata:{beta} <= alpha{alpha}");
+                    break; // アルファベータカット
+                }
             }
 
             return bestScore;
         }
+
+
     }
     public class EvaluateParam
     {
