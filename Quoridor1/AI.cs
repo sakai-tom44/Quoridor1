@@ -146,6 +146,8 @@ namespace Quoridor1
             return false; // 移動できるマスがない場合
         }
 
+
+
         /// <summary>
         /// 1手先を探索し、Minimaxで最良の行動を実際に実行する
         /// </summary>
@@ -157,53 +159,28 @@ namespace Quoridor1
 
             int currentPlayer = board.currentPlayerNumber;
 
-            // -------------------------------
-            // 移動候補を探索
-            // -------------------------------
-            foreach (var move in board.currentPlayer.possibleMoves)
+            /// -------------------------------
+            /// 全ての行動候補を取得して探索
+            /// -------------------------------
+
+            foreach (var action in GetAllActions(board))
             {
                 Board newBoard = new Board(board);
-                newBoard.TryMovePlayer(move.Item1, move.Item2);
-
+                ApplyAction(newBoard, action);
                 int score = Minimax(newBoard, 1, false, currentPlayer, int.MinValue, int.MaxValue);
-
                 if (score > bestScore)
                 {
                     bestScore = score;
-                    bestMove = move;
-                    bestWall = null;
-                }
-            }
-
-            // -------------------------------
-            // 壁候補（縦・横）を探索
-            // -------------------------------
-            foreach (var wall in board.currentPlayer.verticalMountableList)
-            {
-                Board newBoard = new Board(board);
-                newBoard.wallManager.PlaceWall(wall.Item1, wall.Item2, WallOrientation.Vertical);
-
-                int score = Minimax(newBoard, 1, false, currentPlayer, int.MinValue, int.MaxValue);
-
-                if (score > bestScore)
-                {
-                    bestScore = score;
-                    bestMove = null;
-                    bestWall = (wall.Item1, wall.Item2, WallOrientation.Vertical);
-                }
-            }
-            foreach (var wall in board.currentPlayer.horizontalMountableList)
-            {
-                Board newBoard = new Board(board);
-                newBoard.wallManager.PlaceWall(wall.Item1, wall.Item2, WallOrientation.Horizontal);
-
-                int score = Minimax(newBoard, 1, false, currentPlayer, int.MinValue, int.MaxValue);
-
-                if (score > bestScore)
-                {
-                    bestScore = score;
-                    bestMove = null;
-                    bestWall = (wall.Item1, wall.Item2, WallOrientation.Horizontal);
+                    if (action.IsMove)
+                    {
+                        bestMove = (action.X, action.Y);
+                        bestWall = null;
+                    }
+                    else
+                    {
+                        bestMove = null;
+                        bestWall = (action.X, action.Y, action.Orientation);
+                    }
                 }
             }
 
@@ -266,16 +243,14 @@ namespace Quoridor1
             // -------------------------------
             int bestScore = isMaximizing ? int.MinValue : int.MaxValue;
 
-            // -------------------------------
-            // 移動候補を全探索
-            // -------------------------------
-            foreach (var move in board.currentPlayer.possibleMoves)
+            /// -------------------------------
+            /// 全ての行動候補を取得して探索
+            /// -------------------------------
+            foreach (var action in GetAllActions(board))
             {
                 Board newBoard = new Board(board);
-                newBoard.TryMovePlayer(move.Item1, move.Item2);
-
+                ApplyAction(newBoard, action);
                 int score = Minimax(newBoard, depth + 1, !isMaximizing, aiPlayer, alpha, beta);
-
                 if (isMaximizing)
                 {
                     bestScore = Math.Max(bestScore, score);
@@ -286,63 +261,6 @@ namespace Quoridor1
                     bestScore = Math.Min(bestScore, score);
                     beta = Math.Min(beta, bestScore);
                 }
-
-                if (beta <= alpha)
-                {
-                    //Console.WriteLine($"Alpha-Beta Pruning at depth {depth}   /   bata:{beta} <= alpha{alpha}");
-                    break; // アルファベータカット
-                }
-            }
-
-            // -------------------------------
-            // 壁設置候補（縦）
-            // -------------------------------
-            foreach (var wall in board.currentPlayer.verticalMountableList)
-            {
-                Board newBoard = new Board(board);
-                newBoard.wallManager.PlaceWall(wall.Item1, wall.Item2, WallOrientation.Vertical);
-
-                int score = Minimax(newBoard, depth + 1, !isMaximizing, aiPlayer, alpha, beta);
-
-                if (isMaximizing)
-                {
-                    bestScore = Math.Max(bestScore, score);
-                    alpha = Math.Max(alpha, bestScore);
-                }
-                else
-                {
-                    bestScore = Math.Min(bestScore, score);
-                    beta = Math.Min(beta, bestScore);
-                }
-
-                if (beta <= alpha)
-                {
-                    //Console.WriteLine($"Alpha-Beta Pruning at depth {depth}   /   bata:{beta} <= alpha{alpha}");
-                    break; // アルファベータカット
-                }
-            }
-
-            // -------------------------------
-            // 壁設置候補（横）
-            // -------------------------------
-            foreach (var wall in board.currentPlayer.horizontalMountableList)
-            {
-                Board newBoard = new Board(board);
-                newBoard.wallManager.PlaceWall(wall.Item1, wall.Item2, WallOrientation.Horizontal);
-
-                int score = Minimax(newBoard, depth + 1, !isMaximizing, aiPlayer, alpha, beta);
-
-                if (isMaximizing)
-                {
-                    bestScore = Math.Max(bestScore, score);
-                    alpha = Math.Max(alpha, bestScore);
-                }
-                else
-                {
-                    bestScore = Math.Min(bestScore, score);
-                    beta = Math.Min(beta, bestScore);
-                }
-
                 if (beta <= alpha)
                 {
                     //Console.WriteLine($"Alpha-Beta Pruning at depth {depth}   /   bata:{beta} <= alpha{alpha}");
@@ -353,7 +271,72 @@ namespace Quoridor1
             return bestScore;
         }
 
+        /// <summary>
+        /// 現在の手番プレイヤーの全ての行動候補（移動と壁設置）を列挙して返す。
+        /// </summary>
+        private static List<Action> GetAllActions(Board board)
+        {
+            var list = new List<Action>();
 
+            // 移動候補を追加（possibleMoves は (int x,int y) のタプル列を仮定）
+            foreach (var mv in board.currentPlayer.possibleMoves)
+            {
+                list.Add(Action.MoveTo(mv.Item1, mv.Item2));
+            }
+
+            // 縦壁設置候補を追加（verticalMountableList は (int x,int y) のタプル列を仮定）
+            foreach (var w in board.currentPlayer.verticalMountableList)
+            {
+                list.Add(Action.PlaceWall(w.Item1, w.Item2, WallOrientation.Vertical));
+            }
+
+            // 横壁設置候補を追加（horizontalMountableList は (int x,int y) のタプル列を仮定）
+            foreach (var w in board.currentPlayer.horizontalMountableList)
+            {
+                list.Add(Action.PlaceWall(w.Item1, w.Item2, WallOrientation.Horizontal));
+            }
+
+            return list;
+        }
+
+        /// <summary>
+        /// 指定したアクションを盤面に適用する（移動/壁設置を実際に行う）。
+        /// </summary>
+        private static void ApplyAction(Board board, Action action)
+        {
+            if (action.IsMove)
+            {
+                // 移動を適用（TryMove系の戻り値は無視する：プレイアウトでは不正な手はGetAllActionsで除外済）
+                board.TryMovePlayer(action.X, action.Y);
+            }
+            else
+            {
+                // 壁を適用（wallManagerのPlaceWallは合法判定を行うはず）
+                board.wallManager.PlaceWall(action.X, action.Y, action.Orientation);
+            }
+        }
+
+        /// <summary>
+        /// 単純なアクション表現（移動 または 壁設置）。
+        /// </summary>
+        private readonly struct Action
+        {
+            public readonly bool IsMove; // true=移動, false=壁設置
+            public readonly int X;       // 移動先または壁のx
+            public readonly int Y;       // 移動先または壁のy
+            public readonly WallOrientation Orientation; // 壁向き（移動なら無視）
+
+            private Action(bool isMove, int x, int y, WallOrientation orientation)
+            {
+                IsMove = isMove;
+                X = x;
+                Y = y;
+                Orientation = orientation;
+            }
+
+            public static Action MoveTo(int x, int y) => new Action(true, x, y, WallOrientation.Vertical);
+            public static Action PlaceWall(int x, int y, WallOrientation ori) => new Action(false, x, y, ori);
+        }
     }
     public class EvaluateParam
     {

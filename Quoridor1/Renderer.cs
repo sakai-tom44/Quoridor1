@@ -46,14 +46,14 @@ namespace Quoridor1
                         // 横壁がある場合は青線を描く
                         if (board.horizontalWalls[xi, yi] > 0)
                             g.DrawLine(wallPens[board.horizontalWalls[xi, yi] - 1],
-                                xi * cellSize, (yi + 1) * cellSize,
-                                (xi + 2) * cellSize, (yi + 1) * cellSize);
+                                xi * cellSize + 5, (yi + 1) * cellSize,
+                                (xi + 2) * cellSize - 5, (yi + 1) * cellSize);
 
                         // 縦壁がある場合は青線を描く
                         if (board.verticalWalls[xi, yi] > 0)
                             g.DrawLine(wallPens[board.verticalWalls[xi, yi] - 1],
-                                (xi + 1) * cellSize, yi * cellSize,
-                                (xi + 1) * cellSize, (yi + 2) * cellSize);
+                                (xi + 1) * cellSize, yi * cellSize + 5,
+                                (xi + 1) * cellSize, (yi + 2) * cellSize - 5);
                     }
                 }
 
