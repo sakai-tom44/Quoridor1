@@ -68,7 +68,7 @@ namespace Quoridor1
             moveGraph = new int[N * N, N * N]; // 移動グラフを初期化
 
             player[0] = new Player(N / 2, N - 1, PlayerType.Manual); // プレイヤー0を下端中央に配置
-            player[1] = new Player(N / 2, 0, PlayerType.Minmax);     // プレイヤー1を上端中央に配置
+            player[1] = new Player(N / 2, 0, PlayerType.MonteCarlo);     // プレイヤー1を上端中央に配置
 
             foreach (var p in player)
             {

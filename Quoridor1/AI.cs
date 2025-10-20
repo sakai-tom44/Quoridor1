@@ -14,6 +14,7 @@ namespace Quoridor1
         /// 先読みの最大深さ
         /// </summary>
         private const int MAX_DEPTH = 5;
+        public const int SIMULATION_PER_ACTION = 100; // 各候補手に対するシミュレーション回数
 
         /// <summary>
         /// 次の一手を計算し、AIプレイヤーが移動。
@@ -28,6 +29,8 @@ namespace Quoridor1
                 return EvaluateBestAction(board); // 評価関数を使用
             if (board.player[board.currentPlayerNumber].playerType == PlayerType.Minmax)
                 return MinimaxBestAction(board); // ミニマックス法を使用
+            if (board.player[board.currentPlayerNumber].playerType == PlayerType.MonteCarlo)
+                return MonteCarloBestAction(board); // モンテカルロ法を使用
 
 
             return false; // 該当する操作方法がない場合
@@ -38,63 +41,14 @@ namespace Quoridor1
         /// </summary>
         private static bool RandomAction(Board board)
         {
-            // 現在のプレイヤーと相手プレイヤーを取得
-            Player currentPlayer = board.player[board.currentPlayerNumber];
-            Player opponentPlayer = board.player[1 - board.currentPlayerNumber];
-            int maxH = currentPlayer.horizontalMountable.Cast<bool>().Count(x => x); // 設置可能な横壁の数
-            int maxV = currentPlayer.verticalMountable.Cast<bool>().Count(x => x);   // 設置可能な縦壁の数
-            int maxWall = maxH + maxV; // 設置可能な壁の数
             // 移動可能なマスを取得
-            List<(int, int)> possibleMoves = currentPlayer.possibleMoves;
-            if ((possibleMoves.Count == 0 || rand.Next(2) == 0) && maxWall > 0) // 移動できるマスがない場合、または50%の確率、かつ設置可能な壁がある場合
+            var actions = GetAllActions(board);
+            if (actions.Count > 0)
             {
-                // 壁をランダムに設置
-                int r = rand.Next(maxWall); // ランダムに設置位置を選択
-                if (maxV > r)
-                {
-                    for (int x = 0; x < Board.N - 1; x++)
-                    {
-                        for (int y = 0; y < Board.N - 1; y++)
-                        {
-                            if (currentPlayer.verticalMountable[x, y])
-                            {
-                                if (r == 0)
-                                {
-                                    board.wallManager.PlaceWall(x, y, WallOrientation.Vertical);
-                                    return true; // 壁の設置が成功したことを示す
-                                }
-                                r--;
-                            }
-                        }
-                    }
-                }
-                else
-                {
-                    r -= maxV;
-                    for (int x = 0; x < Board.N - 1; x++)
-                    {
-                        for (int y = 0; y < Board.N - 1; y++)
-                        {
-                            if (currentPlayer.horizontalMountable[x, y])
-                            {
-                                if (r == 0)
-                                {
-                                    board.wallManager.PlaceWall(x, y, WallOrientation.Horizontal);
-                                    return true; // 壁の設置が成功したことを示す
-                                }
-                                r--;
-                            }
-                        }
-                    }
-                }
-            }
-            else
-            {
-                // ランダムに移動先を選択
-                var move = possibleMoves[rand.Next(possibleMoves.Count)];
-                currentPlayer.x = move.Item1;
-                currentPlayer.y = move.Item2;
-                return true; // 移動が成功したことを示す
+                int idx = rand.Next(actions.Count); // ランダムに1手選択
+                var action = actions[idx];
+                ApplyAction(board, action);
+                return true; // 行動が成功したことを示す
             }
 
             return false; // 移動できるマスがない場合
@@ -106,47 +60,145 @@ namespace Quoridor1
         /// <param name="playerNumber">AIのプレイヤー番号 (0または1)</param>
         private static bool EvaluateBestAction(Board board)
         {
+            int bestScore = int.MinValue; // 最良のスコアを初期化
+            Action bestAction = default; // 最良の行動を初期化
 
-            int bestMoveScore = int.MinValue; // 最良の移動スコアを初期化
-            (int, int)? bestMove = null; // 最良の移動を初期化
-            int bestWallScore = int.MinValue; // 最良の壁設置スコアを初期化
-            (int, int, WallOrientation)? bestWall = null; // 最良の壁設置を初期化
+            // 候補手一覧を取得（移動・縦壁・横壁を含む）
+            var actions = GetAllActions(board);
 
-            foreach (var move in board.currentPlayer.possibleMoves) // 各移動候補に対して
-            {
-                Board newBoard = new Board(board); // 盤面をコピー ]
-                newBoard.TryMovePlayer(move.Item1, move.Item2); // 移動を適用 // 評価関数を使用して盤面を評価
-                int score = newBoard.EvaluateBoardState(board.currentPlayerNumber); // 最良のスコアと移動を更新
-                if (score > bestMoveScore) { bestMoveScore = score; bestMove = move; }
-            }
-            foreach (var wall in board.currentPlayer.verticalMountableList) // 各設置可能な縦壁に対して
+            foreach ( var action in actions )
             {
                 Board newBoard = new Board(board); // 盤面をコピー
-                newBoard.wallManager.PlaceWall(wall.Item1, wall.Item2, WallOrientation.Vertical); // 壁設置を適用
-                int score = newBoard.EvaluateBoardState(board.currentPlayerNumber); // 最良のスコアと壁設置を更新
-                if (score > bestWallScore) { bestWallScore = score; bestWall = (wall.Item1, wall.Item2, WallOrientation.Vertical); }
+                ApplyAction(newBoard, action); // 行動を適用
+                int score = newBoard.EvaluateBoardState(board.currentPlayerNumber); // 盤面を評価
+                if (score > bestScore)
+                {
+                    bestScore = score;
+                    bestAction = action;
+                }
             }
-            foreach (var wall in board.currentPlayer.horizontalMountableList) //各設置可能な横壁に対して
+
+            if (bestScore > int.MinValue)
             {
-                Board newBoard = new Board(board); // 盤面をコピー
-                newBoard.wallManager.PlaceWall(wall.Item1, wall.Item2, WallOrientation.Horizontal); // 壁設置を適用
-                int score = newBoard.EvaluateBoardState(board.currentPlayerNumber); // 最良のスコアと壁設置を更新
-                if (score > bestWallScore) { bestWallScore = score; bestWall = (wall.Item1, wall.Item2, WallOrientation.Horizontal); }
+                ApplyAction(board, bestAction); // 最良の行動を実行
+                return true; // 行動が成功したことを示す
             }
-            if (bestWallScore > bestMoveScore && bestWall.HasValue)
-            { // 最良の壁設置を実行
-                board.wallManager.PlaceWall(bestWall.Value.Item1, bestWall.Value.Item2, bestWall.Value.Item3);
-                return true; // 壁の設置が成功したことを示す
-            }
-            else if (bestMove.HasValue)
-            { // 最良の移動を実行
-                board.player[board.currentPlayerNumber].x = bestMove.Value.Item1; board.player[board.currentPlayerNumber].y = bestMove.Value.Item2;
-                return true; // 移動が成功したことを示す
-            }
+
             return false; // 移動できるマスがない場合
         }
 
+        /// <summary>
+        /// モンテカルロ法を使用して最良の行動を決定し、実行。
+        /// </summary>
+        /// <param name="board">現在の盤面状態</param>
+        /// <returns>行動が成功したかどうか</returns>
+        public static bool MonteCarloBestAction(Board board) 
+        {
+            // 現在の手番プレイヤー番号を保存（勝利判定はこのプレイヤー基準で行う）
+            int player = board.currentPlayerNumber;
 
+            // 候補手一覧を取得（移動・縦壁・横壁を含む）
+            var actions = GetAllActions(board);
+
+            // 候補が無ければ失敗
+            if (actions.Count == 0) return false;
+
+            // 結果格納用
+            double bestWinRate = double.NegativeInfinity;
+            Action bestAction = default;
+
+            // ここはシンプルな実装：各手ごとに直列でシミュレーションを行う。
+            // 必要なら Parallel.For 等で並列化（ランダム種の競合に注意）。
+            foreach (var act in actions)
+            {
+                int wins = 0;
+
+                // 並列ループでプレイアウトを実行
+                Parallel.For(0, SIMULATION_PER_ACTION, () =>
+                {
+                    // 各スレッドで個別の勝利数カウンタを持つ
+                    return 0;
+                },
+                (i, loopState, localWins) =>
+                {
+                    // 盤面をコピーしてプレイアウトを行う（Board(Board) コピーコンストラクタを想定）
+                    Board sim = new Board(board);
+
+                    // 実際の手を適用（コピーに）
+                    ApplyAction(sim, act);
+
+                    // 次プレイヤーへ移行（ApplyActionは手を適用しただけなのでターン切替が必要なら行う）
+                    sim.NextPlayer();
+
+                    // ランダムプレイアウトの実行（乱数はスレッドローカルで安全）
+                    int winner = PlayOutRandom(sim);
+
+                    // プレイアウトの勝者が起点プレイヤーなら勝利と数える
+                    if (winner == player) localWins++;
+
+                    // スレッドローカル変数として返す
+                    return localWins;
+                },
+                localWins => Interlocked.Add(ref wins, localWins) // 各スレッドの結果を合計
+                );
+
+                double winRate = (double)wins / SIMULATION_PER_ACTION;
+                Console.WriteLine($"Action: {(act.IsMove ? $"Move to ({act.X},{act.Y})" : $"Place {(act.Orientation == WallOrientation.Vertical ? "Vertical" : "Horizontal")} Wall at ({act.X},{act.Y})")}, Win Rate: {winRate:P2}");
+
+                // 最良手を更新
+                if (winRate > bestWinRate)
+                {
+                    bestWinRate = winRate;
+                    bestAction = act;
+                }
+            }
+
+            // 最良手が見つかれば実盤に対してそれを実行してtrueを返す
+            if (bestWinRate > double.NegativeInfinity)
+            {
+                ApplyAction(board, bestAction);
+                return true;
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// ランダムプレイアウトを行い、ゲームの勝者を返す。
+        /// <para>戻り値: -1=継続（理論上起きない）、0=player0勝利, 1=player1勝利</para>
+        /// </summary>
+        /// <param name="simBoard">プレイアウト用の盤（メソッド内で破壊的に操作される）</param>
+        /// <returns>勝者のプレイヤー番号</returns>
+        private static int PlayOutRandom(Board simBoard)
+        {
+            // ローカルな乱数をスレッドごとに生成して競合を防ぐ
+            var rnd = ThreadLocalRandom.Current;
+
+            // ゲームが終わるまでランダムに手を打ち続ける
+            while (true)
+            {
+                // まず勝敗チェック
+                int winner = simBoard.CheckGameOver(); // -1: 継続, 0: p0勝利, 1: p1勝利
+                if (winner != -1) return winner;
+
+                // 現在手番のすべての合法手を列挙
+                var actions = GetAllActions(simBoard);
+
+                // もし合法手が1つも無ければターンをスキップ（通常はあり得ないが保険）
+                if (actions.Count == 0)
+                {
+                    simBoard.NextPlayer();
+                    continue;
+                }
+
+                // ランダムに1手選択して適用
+                int idx = rnd.Next(actions.Count);
+                ApplyAction(simBoard, actions[idx]);
+
+                // ターンを進める
+                simBoard.NextPlayer();
+            }
+        }
 
         /// <summary>
         /// 1手先を探索し、Minimaxで最良の行動を実際に実行する
@@ -154,8 +206,7 @@ namespace Quoridor1
         public static bool MinimaxBestAction(Board board)
         {
             int bestScore = int.MinValue;
-            (int, int)? bestMove = null;
-            (int, int, WallOrientation)? bestWall = null;
+            Action bestAction = default;
 
             int currentPlayer = board.currentPlayerNumber;
 
@@ -171,30 +222,16 @@ namespace Quoridor1
                 if (score > bestScore)
                 {
                     bestScore = score;
-                    if (action.IsMove)
-                    {
-                        bestMove = (action.X, action.Y);
-                        bestWall = null;
-                    }
-                    else
-                    {
-                        bestMove = null;
-                        bestWall = (action.X, action.Y, action.Orientation);
-                    }
+                    bestAction = action;
                 }
             }
 
             // -------------------------------
             // 最良の行動を実際に実行
             // -------------------------------
-            if (bestWall.HasValue)
+            if (bestScore > int.MinValue)
             {
-                board.wallManager.PlaceWall(bestWall.Value.Item1, bestWall.Value.Item2, bestWall.Value.Item3);
-                return true;
-            }
-            else if (bestMove.HasValue)
-            {
-                board.TryMovePlayer(bestMove.Value.Item1, bestMove.Value.Item2);
+                ApplyAction(board, bestAction);
                 return true;
             }
 
@@ -336,6 +373,21 @@ namespace Quoridor1
 
             public static Action MoveTo(int x, int y) => new Action(true, x, y, WallOrientation.Vertical);
             public static Action PlaceWall(int x, int y, WallOrientation ori) => new Action(false, x, y, ori);
+        }
+
+        /// <summary>
+        /// スレッドローカルな Random を提供するユーティリティ。
+        /// Parallel/Threadから呼ばれても安全に乱数を得られる。
+        /// </summary>
+        private static class ThreadLocalRandom
+        {
+            // seed 用にスレッドセーフなインスタンスを作る
+            private static int seed = Environment.TickCount;
+
+            private static readonly ThreadLocal<Random> threadLocal =
+                new ThreadLocal<Random>(() => new Random(Interlocked.Increment(ref seed)));
+
+            public static Random Current => threadLocal.Value;
         }
     }
     public class EvaluateParam

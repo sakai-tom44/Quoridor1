@@ -132,6 +132,6 @@
     /// <summary>
     /// プレイヤーの操作方法の種類
     /// </summary>
-    public enum PlayerType { Manual, Random , Evaluate, Minmax}
+    public enum PlayerType { Manual, Random , Evaluate, Minmax, MonteCarlo}
 }
 
